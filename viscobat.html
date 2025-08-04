@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Viscosity Calculations</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      color: #333;
+    }
+    header {
+      background: #b71c1c; /* deep red accent */
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      background: #f0f0f0;
+      border-bottom: 1px solid #ccc;
+    }
+    nav button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      cursor: pointer;
+      color: #b71c1c;
+    }
+    nav button:hover,
+    nav button.active {
+      background: #ffebee; /* light red */
+      border-radius: 4px;
+    }
+    .container {
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    form label {
+      display: block;
+      margin: 8px 0;
+    }
+    input[type="number"] {
+      padding: 5px;
+      margin-left: 5px;
+      width: 120px;
+    }
+    button.action {
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: #c62828; /* red accent */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button.action:hover {
+      background: #b71c1c;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 10px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: left;
+    }
+    th {
+      background: #e8e8e8;
+    }
+    .error {
+      color: #d32f2f;
+      margin-top: 10px;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background: #ffebee; /* light red background for results */
+      border: 1px solid #ef9a9a;
+      border-radius: 4px;
+    }
+
+    /* Make the graph canvas responsive */
+    canvas {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="title">Viscosity Calculation Tools</h1>
+    <p id="subtitle">Compute viscosity related properties: index, temperature dependency and mixture blending.</p>
+  </header>
+  <nav>
+    <button id="btn-vi" class="active">Viscosity Index</button>
+    <button id="btn-temp">Viscosity vs Temperature</button>
+    <button id="btn-mix">Mixture Viscosity</button>
+    <button id="btn-percent">Percentage of 2 Bases</button>
+    <!-- Language toggle button -->
+    <button id="lang-switch" style="margin-left:auto;">FR</button>
+  </nav>
+  <div class="container">
+    <!-- VI Section -->
+    <div id="vi-section" class="section active">
+      <h2 id="vi-heading">Viscosity Index (VI) Calculator</h2>
+      <p id="vi-desc">Enter two viscosity measurements at different temperatures to compute the viscosity at 40&nbsp;°C, viscosity at 100&nbsp;°C and the Viscosity Index.</p>
+      <form id="vi-form" onsubmit="return false;">
+        <label id="vi-v1-label">Viscosity 1 (mm²/s): <input type="number" step="any" id="vi-v1" required></label>
+        <label id="vi-t1-label">Temperature 1 (°C): <input type="number" step="any" id="vi-t1" value="40" required></label>
+        <label id="vi-v2-label">Viscosity 2 (mm²/s): <input type="number" step="any" id="vi-v2" required></label>
+        <label id="vi-t2-label">Temperature 2 (°C): <input type="number" step="any" id="vi-t2" value="100" required></label>
+        <button type="button" class="action" id="vi-calc">Compute</button>
+      </form>
+      <div id="vi-result"></div>
+    </div>
+    <!-- Temperature Section -->
+    <div id="temp-section" class="section">
+      <h2 id="temp-heading">Viscosity at a Specific Temperature</h2>
+      <p id="temp-desc">Provide two viscosity measurements and the corresponding temperatures, then enter a new temperature to estimate the viscosity at that temperature using the ASTM Walther equation.</p>
+      <form id="temp-form" onsubmit="return false;">
+        <label id="temp-v1-label">Viscosity 1 (mm²/s): <input type="number" step="any" id="temp-v1" required></label>
+        <label id="temp-t1-label">Temperature 1 (°C): <input type="number" step="any" id="temp-t1" value="40" required></label>
+        <label id="temp-v2-label">Viscosity 2 (mm²/s): <input type="number" step="any" id="temp-v2" required></label>
+        <label id="temp-t2-label">Temperature 2 (°C): <input type="number" step="any" id="temp-t2" value="100" required></label>
+        <label id="temp-target-label">Target Temperature (°C): <input type="number" step="any" id="temp-target" required></label>
+        <button type="button" class="action" id="temp-calc">Compute</button>
+      </form>
+      <div id="temp-result"></div>
+      <!-- Placeholder for auto-generated table and graph -->
+      <div id="temp-table-container"></div>
+      <canvas id="temp-graph" width="600" height="400" style="display:none; margin-top:20px; max-width:100%;"></canvas>
+    </div>
+    <!-- Mixture Section -->
+    <div id="mix-section" class="section">
+      <h2 id="mix-heading">Mixture Viscosity Calculator</h2>
+      <p id="mix-desc">Compute the viscosity of a mixture from the viscosities and percentages of its constituents. All viscosities should be measured at the same reference temperature.</p>
+      <div>
+        <label id="mix-count-label">Number of constituents:&nbsp; <input type="number" id="mix-count" min="1" max="20" value="2"></label>
+        <button type="button" class="action" id="mix-generate">Generate Inputs</button>
+      </div>
+      <div id="mix-inputs"></div>
+      <button type="button" class="action" id="mix-calc" style="display:none;">Compute Mixture Viscosity</button>
+      <div id="mix-result"></div>
+    </div>
+    <!-- Percentage Section -->
+    <div id="percent-section" class="section">
+      <h2 id="per-heading">Percentage of Two Bases in a Mixture</h2>
+      <p id="per-desc">This tool calculates the percentages of two base fluids (A and B) required to achieve a target mixture viscosity, while taking into account up to ten known constituents already present in the blend.</p>
+      <div>
+        <label id="per-known-count-label">Number of known constituents:&nbsp; <input type="number" id="per-known-count" min="0" max="10" value="0"></label>
+        <button type="button" class="action" id="per-generate">Generate Inputs</button>
+      </div>
+      <div id="per-inputs"></div>
+      <form id="per-form" onsubmit="return false;">
+        <label id="per-target-label">Target mixture viscosity (mm²/s): <input type="number" step="any" id="per-target" required></label>
+        <label id="per-viscA-label">Viscosity of base A (mm²/s): <input type="number" step="any" id="per-viscA" required></label>
+        <label id="per-viscB-label">Viscosity of base B (mm²/s): <input type="number" step="any" id="per-viscB" required></label>
+        <button type="button" class="action" id="per-calc">Compute Percentages</button>
+      </form>
+      <div id="per-result"></div>
+    </div>
+  </div>
+  <script>
+    // Translation dictionary for English and French
+    const translations = {
+      EN: {
+        title: "Viscosity Calculation Tools",
+        subtitle: "Compute viscosity related properties: index, temperature dependency and mixture blending.",
+        nav_vi: "Viscosity Index",
+        nav_temp: "Viscosity vs Temperature",
+        nav_mix: "Mixture Viscosity",
+        nav_percent: "Percentage of 2 Bases",
+        lang_button: "FR",
+        vi_heading: "Viscosity Index (VI) Calculator",
+        vi_desc: "Enter two viscosity measurements at different temperatures to compute the viscosity at 40 \u00b0C, viscosity at 100 \u00b0C and the Viscosity Index.",
+        vi_v1_label: "Viscosity 1 (mm\u00b2/s):",
+        vi_t1_label: "Temperature 1 (\u00b0C):",
+        vi_v2_label: "Viscosity 2 (mm\u00b2/s):",
+        vi_t2_label: "Temperature 2 (\u00b0C):",
+        vi_compute: "Compute",
+        temp_heading: "Viscosity at a Specific Temperature",
+        temp_desc: "Provide two viscosity measurements and the corresponding temperatures, then enter a new temperature to estimate the viscosity at that temperature using the ASTM Walther equation.",
+        temp_v1_label: "Viscosity 1 (mm\u00b2/s):",
+        temp_t1_label: "Temperature 1 (\u00b0C):",
+        temp_v2_label: "Viscosity 2 (mm\u00b2/s):",
+        temp_t2_label: "Temperature 2 (\u00b0C):",
+        temp_target_label: "Target Temperature (\u00b0C):",
+        temp_compute: "Compute",
+        mix_heading: "Mixture Viscosity Calculator",
+        mix_desc: "Compute the viscosity of a mixture from the viscosities and percentages of its constituents. All viscosities should be measured at the same reference temperature.",
+        mix_count_label: "Number of constituents:",
+        mix_generate: "Generate Inputs",
+        mix_constituent: "Constituent",
+        mix_percentage: "Percentage (%)",
+        mix_viscosity: "Viscosity (mm\u00b2/s)",
+        mix_compute: "Compute Mixture Viscosity",
+        mix_result_prefix: "Mixture viscosity:",
+        // Labels for VI results
+        vi_result_40: "Viscosity at 40°C:",
+        vi_result_100: "Viscosity at 100°C:",
+        vi_result_index: "Viscosity Index:",
+        per_heading: "Percentage of Two Bases in a Mixture",
+        per_desc: "This tool calculates the percentages of two base fluids (A and B) required to achieve a target mixture viscosity, while taking into account up to ten known constituents already present in the blend.",
+        per_known_count_label: "Number of known constituents:",
+        per_generate: "Generate Inputs",
+        per_known_constituent: "Known Constituent",
+        per_target_label: "Target mixture viscosity (mm\u00b2/s):",
+        per_viscA_label: "Viscosity of base A (mm\u00b2/s):",
+        per_viscB_label: "Viscosity of base B (mm\u00b2/s):",
+        per_compute: "Compute Percentages",
+        per_result_A: "Percentage of base A:",
+        per_result_B: "Percentage of base B:",
+        error_invalid_values: "Please enter valid positive values for both viscosities and temperatures.",
+        error_unable_vi: "Unable to calculate viscosity index with the provided values.",
+        error_invalid_numbers: "Please enter valid positive numbers for viscosities and temperatures.",
+        error_sum_percentages: sum => `The sum of all percentages must equal 100% (current sum is ${sum.toFixed(2)}%).`,
+        error_invalid_constituents: "Please enter a valid number of constituents.",
+        error_invalid_known_constituents: "Please enter a valid number of known constituents.",
+        error_max_known_constituents: "Maximum number of known constituents is 10.",
+        error_fill_all: "Please fill all percentages and viscosities with positive numbers.",
+        error_known_fill: "Please fill all percentages and viscosities for known constituents with positive numbers.",
+        error_known_sum: "The total percentage of known constituents must be less than 100%.",
+        error_same_walther: "Base A and B viscosities produce the same Walther constant; calculation is not possible.",
+        error_impossible: "Impossible to obtain this viscosity with the chosen bases and known constituents.",
+        temp_table_heading_temp: "Temperature (\u00b0C)",
+        temp_table_heading_visc: "Viscosity (mm\u00b2/s)",
+        temp_result_estimated: (temp, visc) => `Estimated viscosity at ${temp.toFixed(1)}\u00b0C: ${visc.toFixed(3)} mm\u00b2/s`,
+        mix_table_const: (i) => `Constituent ${i}`
+      },
+      FR: {
+        title: "Outils de calcul de viscosité",
+        subtitle: "Calculez les propriétés liées à la viscosité : indice, dépendance à la température et mélange.",
+        nav_vi: "Indice de viscosité",
+        nav_temp: "Viscosité en fonction de la température",
+        nav_mix: "Viscosité du mélange",
+        nav_percent: "Pourcentage de 2 bases",
+        lang_button: "EN",
+        vi_heading: "Calculateur d'indice de viscosité (VI)",
+        vi_desc: "Saisissez deux mesures de viscosité à des températures différentes pour calculer la viscosité à 40 °C, la viscosité à 100 °C et l'indice de viscosité.",
+        vi_v1_label: "Viscosité 1 (mm\u00b2/s) :",
+        vi_t1_label: "Température 1 (\u00b0C) :",
+        vi_v2_label: "Viscosité 2 (mm\u00b2/s) :",
+        vi_t2_label: "Température 2 (\u00b0C) :",
+        vi_compute: "Calculer",
+        temp_heading: "Viscosité à une température spécifique",
+        temp_desc: "Fournissez deux mesures de viscosité et les températures correspondantes, puis saisissez une nouvelle température pour estimer la viscosité à cette température en utilisant l'équation de Walther (ASTM).",
+        temp_v1_label: "Viscosité 1 (mm\u00b2/s) :",
+        temp_t1_label: "Température 1 (\u00b0C) :",
+        temp_v2_label: "Viscosité 2 (mm\u00b2/s) :",
+        temp_t2_label: "Température 2 (\u00b0C) :",
+        temp_target_label: "Température cible (\u00b0C) :",
+        temp_compute: "Calculer",
+        mix_heading: "Calculateur de viscosité de mélange",
+        mix_desc: "Calculez la viscosité d'un mélange à partir des viscosités et des pourcentages de ses constituants. Toutes les viscosités doivent être mesurées à la même température de référence.",
+        mix_count_label: "Nombre de constituants :",
+        mix_generate: "Générer les champs",
+        mix_constituent: "Constituant",
+        mix_percentage: "Pourcentage (%)",
+        mix_viscosity: "Viscosité (mm\u00b2/s)",
+        mix_compute: "Calculer la viscosité du mélange",
+        mix_result_prefix: "Viscosité du mélange :",
+        // Labels for VI results
+        vi_result_40: "Viscosité à 40 °C :",
+        vi_result_100: "Viscosité à 100 °C :",
+        vi_result_index: "Indice de viscosité :",
+        per_heading: "Pourcentage de deux bases dans un mélange",
+        per_desc: "Cet outil calcule les pourcentages de deux bases (A et B) nécessaires pour atteindre une viscosité de mélange cible, en tenant compte de jusqu'à dix constituants déjà présents dans le mélange.",
+        per_known_count_label: "Nombre de constituants connus :",
+        per_generate: "Générer les champs",
+        per_known_constituent: "Constituant connu",
+        per_target_label: "Viscosité cible du mélange (mm\u00b2/s) :",
+        per_viscA_label: "Viscosité de la base A (mm\u00b2/s) :",
+        per_viscB_label: "Viscosité de la base B (mm\u00b2/s) :",
+        per_compute: "Calculer les pourcentages",
+        per_result_A: "Pourcentage de la base A :",
+        per_result_B: "Pourcentage de la base B :",
+        error_invalid_values: "Veuillez saisir des valeurs positives valides pour les viscosités et les températures.",
+        error_unable_vi: "Impossible de calculer l'indice de viscosité avec les valeurs fournies.",
+        error_invalid_numbers: "Veuillez saisir des nombres positifs valides pour les viscosités et les températures.",
+        error_sum_percentages: sum => `La somme de tous les pourcentages doit être égale à 100 % (somme actuelle : ${sum.toFixed(2)} %).`,
+        error_invalid_constituents: "Veuillez saisir un nombre valide de constituants.",
+        error_invalid_known_constituents: "Veuillez saisir un nombre valide de constituants connus.",
+        error_max_known_constituents: "Le nombre maximal de constituants connus est de 10.",
+        error_fill_all: "Veuillez remplir tous les pourcentages et viscosités avec des nombres positifs.",
+        error_known_fill: "Veuillez remplir tous les pourcentages et viscosités des constituants connus avec des nombres positifs.",
+        error_known_sum: "Le pourcentage total des constituants connus doit être inférieur à 100 %.",
+        error_same_walther: "Les viscosités des bases A et B produisent la même constante de Walther ; le calcul est impossible.",
+        error_impossible: "Impossible d'obtenir cette viscosité avec les bases choisies et les constituants connus.",
+        temp_table_heading_temp: "Température (\u00b0C)",
+        temp_table_heading_visc: "Viscosité (mm\u00b2/s)",
+        temp_result_estimated: (temp, visc) => `Viscosité estimée à ${temp.toFixed(1)} °C : ${visc.toFixed(3)} mm\u00b2/s`,
+        mix_table_const: (i) => `Constituant ${i}`
+      }
+    };
+    let currentLang = 'EN';
+    function t(key, ...args) {
+      const val = translations[currentLang][key];
+      return typeof val === 'function' ? val(...args) : val;
+    }
+    /**
+     * Apply translations to static text elements based on current language.
+     */
+    function applyTranslations() {
+      // header
+      document.getElementById('title').textContent = t('title');
+      document.getElementById('subtitle').textContent = t('subtitle');
+      // nav
+      document.getElementById('btn-vi').textContent = t('nav_vi');
+      document.getElementById('btn-temp').textContent = t('nav_temp');
+      document.getElementById('btn-mix').textContent = t('nav_mix');
+      document.getElementById('btn-percent').textContent = t('nav_percent');
+      document.getElementById('lang-switch').textContent = t('lang_button');
+      // VI section
+      document.getElementById('vi-heading').textContent = t('vi_heading');
+      document.getElementById('vi-desc').textContent = t('vi_desc');
+      document.getElementById('vi-v1-label').childNodes[0].nodeValue = t('vi_v1_label') + ' ';
+      document.getElementById('vi-t1-label').childNodes[0].nodeValue = t('vi_t1_label') + ' ';
+      document.getElementById('vi-v2-label').childNodes[0].nodeValue = t('vi_v2_label') + ' ';
+      document.getElementById('vi-t2-label').childNodes[0].nodeValue = t('vi_t2_label') + ' ';
+      document.getElementById('vi-calc').textContent = t('vi_compute');
+      // Temp section
+      document.getElementById('temp-heading').textContent = t('temp_heading');
+      document.getElementById('temp-desc').textContent = t('temp_desc');
+      document.getElementById('temp-v1-label').childNodes[0].nodeValue = t('temp_v1_label') + ' ';
+      document.getElementById('temp-t1-label').childNodes[0].nodeValue = t('temp_t1_label') + ' ';
+      document.getElementById('temp-v2-label').childNodes[0].nodeValue = t('temp_v2_label') + ' ';
+      document.getElementById('temp-t2-label').childNodes[0].nodeValue = t('temp_t2_label') + ' ';
+      document.getElementById('temp-target-label').childNodes[0].nodeValue = t('temp_target_label') + ' ';
+      document.getElementById('temp-calc').textContent = t('temp_compute');
+      // Mix section
+      document.getElementById('mix-heading').textContent = t('mix_heading');
+      document.getElementById('mix-desc').textContent = t('mix_desc');
+      document.getElementById('mix-count-label').childNodes[0].nodeValue = t('mix_count_label') + ' ';
+      document.getElementById('mix-generate').textContent = t('mix_generate');
+      document.getElementById('mix-calc').textContent = t('mix_compute');
+      // Percent section
+      document.getElementById('per-heading').textContent = t('per_heading');
+      document.getElementById('per-desc').textContent = t('per_desc');
+      document.getElementById('per-known-count-label').childNodes[0].nodeValue = t('per_known_count_label') + ' ';
+      document.getElementById('per-generate').textContent = t('per_generate');
+      document.getElementById('per-target-label').childNodes[0].nodeValue = t('per_target_label') + ' ';
+      document.getElementById('per-viscA-label').childNodes[0].nodeValue = t('per_viscA_label') + ' ';
+      document.getElementById('per-viscB-label').childNodes[0].nodeValue = t('per_viscB_label') + ' ';
+      document.getElementById('per-calc').textContent = t('per_compute');
+      // If any tables are present, update their headings as well
+      const mixInputsTable = document.querySelector('#mix-inputs table');
+      if (mixInputsTable) {
+        const ths = mixInputsTable.querySelectorAll('th');
+        if (ths.length >= 3) {
+          ths[0].textContent = t('mix_constituent');
+          ths[1].textContent = t('mix_percentage');
+          ths[2].textContent = t('mix_viscosity');
+        }
+      }
+      const perInputsTable = document.querySelector('#per-inputs table');
+      if (perInputsTable) {
+        const ths2 = perInputsTable.querySelectorAll('th');
+        if (ths2.length >= 3) {
+          ths2[0].textContent = t('per_known_constituent');
+          ths2[1].textContent = t('mix_percentage');
+          ths2[2].textContent = t('mix_viscosity');
+        }
+      }
+      // Update temperature results table if present
+      const tempTable = document.querySelector('#temp-table-container table');
+      if (tempTable) {
+        const ths3 = tempTable.querySelectorAll('th');
+        if (ths3.length >= 2) {
+          ths3[0].textContent = t('temp_table_heading_temp');
+          ths3[1].textContent = t('temp_table_heading_visc');
+        }
+      }
+    }
+    const sections = {
+      'btn-vi': 'vi-section',
+      'btn-temp': 'temp-section',
+      'btn-mix': 'mix-section',
+      'btn-percent': 'percent-section'
+    };
+    Object.keys(sections).forEach(btnId => {
+      document.getElementById(btnId).addEventListener('click', () => {
+        // update active nav
+        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(btnId).classList.add('active');
+        // show corresponding section
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById(sections[btnId]).classList.add('active');
+      });
+    });
+
+    /**
+     * Compute viscosity at a given temperature using two reference points.
+     * Implements the Walther equation as used in the spreadsheet.
+     * @param {number} v1 Viscosity 1 (mm²/s)
+     * @param {number} t1 Temperature 1 (°C)
+     * @param {number} v2 Viscosity 2 (mm²/s)
+     * @param {number} t2 Temperature 2 (°C)
+     * @param {number} targetT Target temperature (°C)
+     * @returns {number} Viscosity at the target temperature
+     */
+    function log10(x) {
+      return Math.log(x) / Math.LN10;
+    }
+    function computeViscosityAtTemp(v1, t1, v2, t2, targetT) {
+      // Use base-10 logarithms to mirror Excel's LOG function
+      const L1 = log10(log10(v1 + 0.7));
+      const L2 = log10(log10(v2 + 0.7));
+      const X1 = log10(t1 + 273.15);
+      const X2 = log10(t2 + 273.15);
+      // slope uses (L1 - L2)/(X2 - X1) to match the spreadsheet implementation
+      const slope = (L1 - L2) / (X2 - X1);
+      const intercept = L1 + slope * X1;
+      const Ltarget = intercept - slope * log10(targetT + 273.15);
+      const visc = Math.pow(10, Math.pow(10, Ltarget)) - 0.7;
+      return visc;
+    }
+
+    /**
+     * Compute viscosity index (VI) given viscosity at 40°C (U) and at 100°C (Y).
+     * Reproduces the piecewise formulas from the provided spreadsheet.
+     * @param {number} U Viscosity at 40°C
+     * @param {number} Y Viscosity at 100°C
+     * @returns {number} Viscosity index rounded to one decimal
+     */
+    function computeViscosityIndex(U, Y) {
+      if (U <= 0 || Y <= 0) {
+        return NaN;
+      }
+      // Use the global log10 function defined above instead of Math.log here
+      // Helper to compute round to one decimal
+      const round1 = val => Math.round(val * 10) / 10;
+      // Piecewise formulas
+      // Case Y < 2
+      function caseAJ() {
+        const AJ3 = log10(log10(U + 0.7));
+        const AJ4 = log10(log10(Y + 0.7));
+        const AJ5 = Math.pow(10, Math.pow(10, AJ3 + ((AJ3 - AJ4) * 0.04022))) - 0.7;
+        const AJ6 = Math.pow(10, Math.pow(10, AJ3 + ((AJ3 - AJ4) * 0.98316))) - 0.7;
+        const numerator = 1.2665 * AJ6 * AJ6 + 1.655 * AJ6 - AJ5;
+        const denominator = 0.34984 * AJ6 * AJ6 + 0.1725 * AJ6;
+        const AJ8 = 100 * (numerator / denominator);
+        return round1(AJ8);
+      }
+      // Generic case function builder: given functions for A4, A5 and A6 coefficients
+      function generalCase(coeff4, coeff5) {
+        const A4 = coeff4(Y);
+        const A5 = coeff5(Y);
+        const A6 = (100 * (A4 + A5 - U)) / A5;
+        // A7 uses base-10 logarithms
+        const A7 = (log10(A4) - log10(U)) / log10(Y);
+        const A8 = ((Math.pow(10, A7) - 1) / 0.00715) + 100;
+        return A6 > 100 ? round1(A8) : round1(A6);
+      }
+      // High viscosity case (AG)
+      function caseAG() {
+        const AG3 = 0.835313 * Y * Y + 14.6731 * Y - 216.246;
+        const AG5 = 0.666904 * Y * Y + 2.8238 * Y - 119.298;
+        const AG4 = AG3 - AG5;
+        const AG6 = (100 * (AG4 + AG5 - U)) / AG5;
+        const AG7 = (log10(AG4) - log10(U)) / log10(Y);
+        const AG8 = ((Math.pow(10, AG7) - 1) / 0.00715) + 100;
+        return AG6 > 100 ? round1(AG8) : round1(AG6);
+      }
+      if (Y < 2) {
+        return caseAJ();
+      } else if (Y < 4) {
+        return generalCase(
+          y => 0.827 * y * y + 1.632 * y - 0.181,
+          y => 0.3094 * y * y + 0.182 * y
+        );
+      } else if (Y < 6.1) {
+        return generalCase(
+          y => -2.6758 * y * y + 96.671 * y - 269.664 * Math.sqrt(y) + 215.025,
+          y => -7.1955 * y * y + 241.992 * y - 725.478 * Math.sqrt(y) + 603.888
+        );
+      } else if (Y < 7.2) {
+        return generalCase(
+          y => 2.32 * Math.pow(y, 1.5626),
+          y => 2.838 * y * y - 27.35 * y + 81.83
+        );
+      } else if (Y < 12.4) {
+        return generalCase(
+          y => 0.1922 * y * y + 8.25 * y - 18.728,
+          y => 0.5463 * y * y + 2.442 * y - 14.16
+        );
+      } else if (Y < 70) {
+        return generalCase(
+          y => 1795.2 * Math.pow(y, -2) + 0.1818 * y * y + 10.357 * y - 54.547,
+          y => 0.6995 * y * y - 1.19 * y + 7.6
+        );
+      } else {
+        return caseAG();
+      }
+    }
+
+    /**
+     * Draw a simple XY line graph on the provided canvas representing
+     * viscosity vs temperature. The axes will scale automatically based
+     * on the input data and include labels using the current language.
+     * @param {HTMLCanvasElement} canvas The canvas element on which to draw
+     * @param {number[]} temps Array of temperature values (x-axis)
+     * @param {number[]} viscs Array of viscosity values (y-axis)
+     */
+    function drawTempGraph(canvas, temps, viscs) {
+      if (!canvas || !canvas.getContext) return;
+      const ctx = canvas.getContext('2d');
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const w = canvas.width;
+      const h = canvas.height;
+      // Define margins
+      const marginLeft = 50;
+      const marginRight = 20;
+      const marginTop = 30;
+      const marginBottom = 40;
+      // Determine ranges
+      const xMin = Math.min(...temps);
+      const xMax = Math.max(...temps);
+      const yMinData = Math.min(...viscs);
+      const yMaxData = Math.max(...viscs);
+      // Add small margins to y values for better display
+      const yRange = yMaxData - yMinData || 1;
+      const yMin = yMinData - yRange * 0.05;
+      const yMax = yMaxData + yRange * 0.05;
+      const plotW = w - marginLeft - marginRight;
+      const plotH = h - marginTop - marginBottom;
+      // Helper to convert data to canvas coords
+      function xToCanvas(x) {
+        return marginLeft + ((x - xMin) / (xMax - xMin)) * plotW;
+      }
+      function yToCanvas(y) {
+        return marginTop + (1 - (y - yMin) / (yMax - yMin)) * plotH;
+      }
+      // Draw axes lines
+      ctx.strokeStyle = '#b71c1c';
+      ctx.lineWidth = 1;
+      // X axis
+      ctx.beginPath();
+      ctx.moveTo(marginLeft, h - marginBottom);
+      ctx.lineTo(w - marginRight, h - marginBottom);
+      ctx.stroke();
+      // Y axis
+      ctx.beginPath();
+      ctx.moveTo(marginLeft, marginTop);
+      ctx.lineTo(marginLeft, h - marginBottom);
+      ctx.stroke();
+      ctx.fillStyle = '#333';
+      ctx.font = '12px Arial';
+      // X axis ticks and labels (temperatures)
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      temps.forEach((xVal) => {
+        const x = xToCanvas(xVal);
+        // Tick
+        ctx.beginPath();
+        ctx.moveTo(x, h - marginBottom);
+        ctx.lineTo(x, h - marginBottom + 5);
+        ctx.stroke();
+        // Label
+        ctx.fillText(xVal.toFixed(0), x, h - marginBottom + 8);
+      });
+      // Y axis ticks (5 evenly spaced)
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      const yTicks = 5;
+      for (let i = 0; i <= yTicks; i++) {
+        const yVal = yMin + (i / yTicks) * (yMax - yMin);
+        const yPix = yToCanvas(yVal);
+        // Tick
+        ctx.beginPath();
+        ctx.moveTo(marginLeft - 5, yPix);
+        ctx.lineTo(marginLeft, yPix);
+        ctx.stroke();
+        // Label
+        ctx.fillText(yVal.toFixed(1), marginLeft - 8, yPix);
+      }
+      // Draw line connecting data points
+      ctx.strokeStyle = '#c62828';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      temps.forEach((xVal, idx) => {
+        const px = xToCanvas(xVal);
+        const py = yToCanvas(viscs[idx]);
+        if (idx === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      });
+      ctx.stroke();
+      // Draw points
+      ctx.fillStyle = '#c62828';
+      temps.forEach((xVal, idx) => {
+        const px = xToCanvas(xVal);
+        const py = yToCanvas(viscs[idx]);
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      // Draw axis titles
+      ctx.fillStyle = '#333';
+      ctx.font = '13px Arial';
+      // X-axis title
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(t('temp_table_heading_temp'), marginLeft + plotW / 2, h);
+      // Y-axis title rotated
+      ctx.save();
+      ctx.translate(0, 0);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(t('temp_table_heading_visc'), - (marginTop + plotH / 2), 15);
+      ctx.restore();
+    }
+
+    // VI computation event
+    document.getElementById('vi-calc').addEventListener('click', () => {
+      const v1 = parseFloat(document.getElementById('vi-v1').value);
+      const t1 = parseFloat(document.getElementById('vi-t1').value);
+      const v2 = parseFloat(document.getElementById('vi-v2').value);
+      const t2 = parseFloat(document.getElementById('vi-t2').value);
+      const resultDiv = document.getElementById('vi-result');
+      resultDiv.innerHTML = '';
+      // Validate inputs
+      if (isNaN(v1) || isNaN(t1) || isNaN(v2) || isNaN(t2) || v1 <= 0 || v2 <= 0) {
+        resultDiv.innerHTML = `<p class="error">${t('error_invalid_values')}</p>`;
+        return;
+      }
+      // Calculate viscosity at 40°C and 100°C
+      const visc40 = computeViscosityAtTemp(v1, t1, v2, t2, 40);
+      const visc100 = computeViscosityAtTemp(v1, t1, v2, t2, 100);
+      const vi = computeViscosityIndex(visc40, visc100);
+      if (isNaN(vi)) {
+        resultDiv.innerHTML = `<p class="error">${t('error_unable_vi')}</p>`;
+        return;
+      }
+      resultDiv.innerHTML =
+        '<div class="result">' +
+        '<strong>' + t('vi_result_40') + '</strong> ' + visc40.toFixed(3) + ' mm²/s<br>' +
+        '<strong>' + t('vi_result_100') + '</strong> ' + visc100.toFixed(3) + ' mm²/s<br>' +
+        '<strong>' + t('vi_result_index') + '</strong> ' + vi.toFixed(1) +
+        '</div>';
+    });
+
+    // Temperature calculation event
+    document.getElementById('temp-calc').addEventListener('click', () => {
+      const v1 = parseFloat(document.getElementById('temp-v1').value);
+      const t1 = parseFloat(document.getElementById('temp-t1').value);
+      const v2 = parseFloat(document.getElementById('temp-v2').value);
+      const t2 = parseFloat(document.getElementById('temp-t2').value);
+      const targetT = parseFloat(document.getElementById('temp-target').value);
+      const resultDiv = document.getElementById('temp-result');
+      const tableContainer = document.getElementById('temp-table-container');
+      const canvas = document.getElementById('temp-graph');
+      resultDiv.innerHTML = '';
+      tableContainer.innerHTML = '';
+      // Hide graph by default
+      canvas.style.display = 'none';
+      // Validate inputs
+      if ([v1, v2, t1, t2, targetT].some(x => isNaN(x)) || v1 <= 0 || v2 <= 0) {
+        resultDiv.innerHTML = `<p class="error">${t('error_invalid_numbers')}</p>`;
+        return;
+      }
+      const visc = computeViscosityAtTemp(v1, t1, v2, t2, targetT);
+      // Show result
+      resultDiv.innerHTML =
+        '<div class="result">' + t('temp_result_estimated', targetT, visc) + '</div>';
+      // Generate table for temps 0 to 100°C at 10°C increments
+      const temps = [];
+      const viscs = [];
+      for (let temp = 0; temp <= 100; temp += 10) {
+        temps.push(temp);
+        viscs.push(computeViscosityAtTemp(v1, t1, v2, t2, temp));
+      }
+      let html = '<table><tr><th>' + t('temp_table_heading_temp') + '</th><th>' + t('temp_table_heading_visc') + '</th></tr>';
+      for (let i = 0; i < temps.length; i++) {
+        html += '<tr><td>' + temps[i].toFixed(1) + '</td><td>' + viscs[i].toFixed(3) + '</td></tr>';
+      }
+      html += '</table>';
+      tableContainer.innerHTML = html;
+      // Draw graph
+      drawTempGraph(canvas, temps, viscs);
+      canvas.style.display = 'block';
+    });
+
+    // Mixture section logic
+    const mixInputsDiv = document.getElementById('mix-inputs');
+    document.getElementById('mix-generate').addEventListener('click', () => {
+      const count = parseInt(document.getElementById('mix-count').value);
+      mixInputsDiv.innerHTML = '';
+      if (isNaN(count) || count < 1) {
+        mixInputsDiv.innerHTML = `<p class="error">${t('error_invalid_constituents')}</p>`;
+        document.getElementById('mix-calc').style.display = 'none';
+        return;
+      }
+      // Create table with translated headers
+      let html = '<table><tr><th>' + t('mix_constituent') + '</th><th>' + t('mix_percentage') + '</th><th>' + t('mix_viscosity') + '</th></tr>';
+      for (let i = 0; i < count; i++) {
+        html += '<tr>' +
+          '<td>' + t('mix_table_const', i + 1) + '</td>' +
+          '<td><input type="number" step="any" min="0" id="mix-perc-' + i + '"></td>' +
+          '<td><input type="number" step="any" min="0" id="mix-visc-' + i + '"></td>' +
+          '</tr>';
+      }
+      html += '</table>';
+      mixInputsDiv.innerHTML = html;
+      document.getElementById('mix-calc').style.display = 'inline-block';
+      document.getElementById('mix-result').innerHTML = '';
+    });
+    document.getElementById('mix-calc').addEventListener('click', () => {
+      const count = parseInt(document.getElementById('mix-count').value);
+      let percentages = [];
+      let viscosities = [];
+      let sumPerc = 0;
+      for (let i = 0; i < count; i++) {
+        const p = parseFloat(document.getElementById('mix-perc-' + i).value);
+        const v = parseFloat(document.getElementById('mix-visc-' + i).value);
+        if (isNaN(p) || isNaN(v) || p < 0 || v <= 0) {
+          document.getElementById('mix-result').innerHTML = `<p class="error">${t('error_fill_all')}</p>`;
+          return;
+        }
+        percentages.push(p);
+        viscosities.push(v);
+        sumPerc += p;
+      }
+      if (Math.abs(sumPerc - 100) > 0.01) {
+        document.getElementById('mix-result').innerHTML = `<p class="error">${t('error_sum_percentages', sumPerc)}</p>`;
+        return;
+      }
+      // Compute weighted sum of log10(log10(v+0.7)) as in the spreadsheet
+      let Lsum = 0;
+      for (let i = 0; i < count; i++) {
+        const frac = percentages[i] / 100;
+        Lsum += frac * log10(log10(viscosities[i] + 0.7));
+      }
+      const mixtureVisc = Math.pow(10, Math.pow(10, Lsum)) - 0.7;
+      document.getElementById('mix-result').innerHTML = `<div class="result"><strong>${t('mix_result_prefix')}</strong> ` + mixtureVisc.toFixed(3) + ' mm²/s</div>';
+    });
+
+    // Percentage of two bases logic
+    const perInputsDiv = document.getElementById('per-inputs');
+    document.getElementById('per-generate').addEventListener('click', () => {
+      const count = parseInt(document.getElementById('per-known-count').value);
+      perInputsDiv.innerHTML = '';
+      if (isNaN(count) || count < 0) {
+        perInputsDiv.innerHTML = `<p class="error">${t('error_invalid_known_constituents')}</p>`;
+        return;
+      }
+      if (count > 10) {
+        perInputsDiv.innerHTML = `<p class="error">${t('error_max_known_constituents')}</p>`;
+        return;
+      }
+      let html = '';
+      if (count > 0) {
+        html += '<table><tr><th>' + t('per_known_constituent') + '</th><th>' + t('mix_percentage') + '</th><th>' + t('mix_viscosity') + '</th></tr>';
+        for (let i = 0; i < count; i++) {
+          html += '<tr>' +
+            '<td>' + (i + 1) + '</td>' +
+            '<td><input type="number" step="any" min="0" id="per-perc-' + i + '"></td>' +
+            '<td><input type="number" step="any" min="0" id="per-visc-' + i + '"></td>' +
+            '</tr>';
+        }
+        html += '</table>';
+      }
+      perInputsDiv.innerHTML = html;
+      document.getElementById('per-result').innerHTML = '';
+    });
+    document.getElementById('per-calc').addEventListener('click', () => {
+      const count = parseInt(document.getElementById('per-known-count').value);
+      const targetVisc = parseFloat(document.getElementById('per-target').value);
+      const viscA = parseFloat(document.getElementById('per-viscA').value);
+      const viscB = parseFloat(document.getElementById('per-viscB').value);
+      const resultDiv = document.getElementById('per-result');
+      resultDiv.innerHTML = '';
+      // Validate viscosities
+      if ([targetVisc, viscA, viscB].some(x => isNaN(x) || x <= 0)) {
+        resultDiv.innerHTML = `<p class="error">${t('error_invalid_numbers')}</p>`;
+        return;
+      }
+      let sumKnown = 0;
+      let sumWeightedLogs = 0;
+      for (let i = 0; i < count; i++) {
+        const p = parseFloat(document.getElementById('per-perc-' + i).value);
+        const v = parseFloat(document.getElementById('per-visc-' + i).value);
+        if (isNaN(p) || isNaN(v) || p < 0 || v <= 0) {
+          resultDiv.innerHTML = `<p class="error">${t('error_known_fill')}</p>`;
+          return;
+        }
+        const frac = p / 100;
+        sumKnown += frac;
+        sumWeightedLogs += frac * log10(log10(v + 0.7));
+      }
+      if (sumKnown >= 1) {
+        resultDiv.innerHTML = `<p class="error">${t('error_known_sum')}</p>`;
+        return;
+      }
+      const LT = log10(log10(targetVisc + 0.7));
+      const LA = log10(log10(viscA + 0.7));
+      const LB = log10(log10(viscB + 0.7));
+      const numerator = (LT - sumWeightedLogs) - (1 - sumKnown) * LB;
+      const denom = (LA - LB);
+      if (denom === 0) {
+        resultDiv.innerHTML = `<p class="error">${t('error_same_walther')}</p>`;
+        return;
+      }
+      const fracA = numerator / denom; // share of base A in total mixture
+      const fracB = (1 - sumKnown) - fracA;
+      if (fracA < 0 || fracB < 0) {
+        resultDiv.innerHTML = `<p class="error">${t('error_impossible')}</p>`;
+        return;
+      }
+      const percA = fracA * 100;
+      const percB = fracB * 100;
+      resultDiv.innerHTML = '<div class="result">' +
+        '<strong>' + t('per_result_A') + '</strong> ' + percA.toFixed(2) + ' %<br>' +
+        '<strong>' + t('per_result_B') + '</strong> ' + percB.toFixed(2) + ' %' +
+        '</div>';
+    });
+
+    // Language switcher event
+    document.getElementById('lang-switch').addEventListener('click', () => {
+      // Toggle between English and French
+      currentLang = currentLang === 'EN' ? 'FR' : 'EN';
+      applyTranslations();
+    });
+    // Apply translations on initial load
+    applyTranslations();
+  </script>
+</body>
+</html>
