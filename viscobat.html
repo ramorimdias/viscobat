@@ -1097,7 +1097,12 @@
         document.getElementById('solver-result').innerHTML = `<p class="error">${t('error_no_open_variable')}</p>`;
         return;
       }
-      const step = 1;
+      let step = 1;
+      if (openCount <= 2) {
+        step = 0.01;
+      } else if (openCount === 3) {
+        step = 0.1;
+      }
       let best = null;
       function search(i, remaining, current) {
         if (!objectiveMode && !objectiveIsVisc && best) return;
@@ -1131,17 +1136,26 @@
           if (val > remaining + 1e-6) return;
           current[i] = val;
           search(i + 1, remaining - val, current);
-        } else {
-          let start = 0, end = remaining;
-          if (type === 'range') {
-            start = mins[i];
-            end = Math.min(maxs[i], remaining);
-            if (end < start) return;
-          }
-          for (let val = start; val <= end; val += step) {
-            current[i] = val;
-            search(i + 1, remaining - val, current);
-          }
+          return;
+        }
+        // Non-fixed variables
+        let start = 0, end = remaining;
+        if (type === 'range') {
+          start = mins[i];
+          end = Math.min(maxs[i], remaining);
+          if (end < start) return;
+        }
+        if (i === count - 1) {
+          // Last variable takes the remaining value directly
+          const val = remaining;
+          if (val < start - 1e-6 || val > end + 1e-6) return;
+          current[i] = val;
+          search(i + 1, 0, current);
+          return;
+        }
+        for (let val = start; val <= end; val += step) {
+          current[i] = val;
+          search(i + 1, remaining - val, current);
         }
       }
       search(0, 100, new Array(count));
