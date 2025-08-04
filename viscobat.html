@@ -116,6 +116,7 @@
     <button id="btn-temp">Viscosity vs Temperature</button>
     <button id="btn-mix">Mixture Viscosity</button>
     <button id="btn-percent">Percentage of 2 Bases</button>
+    <button id="btn-solver">Solver</button>
     <!-- Language toggle button -->
     <button id="lang-switch" style="margin-left:auto;">FR</button>
   </nav>
@@ -179,6 +180,19 @@
       </form>
       <div id="per-result"></div>
     </div>
+    <!-- Solver Section -->
+    <div id="solver-section" class="section">
+      <h2 id="solver-heading">Mixture Solver</h2>
+      <p id="solver-desc">Solve mixture percentages or viscosity given constraints.</p>
+      <div>
+        <label id="solver-count-label">Number of constituents: <input type="number" id="solver-count" min="1" max="5" value="2"></label>
+        <button type="button" class="action" id="solver-generate">Generate Inputs</button>
+      </div>
+      <div id="solver-inputs"></div>
+      <div id="solver-visc-constraint"></div>
+      <button type="button" class="action" id="solver-solve" style="display:none;">Solve</button>
+      <div id="solver-result"></div>
+    </div>
   </div>
   <script>
     // Translation dictionary for English and French
@@ -190,6 +204,7 @@
         nav_temp: "Viscosity vs Temperature",
         nav_mix: "Mixture Viscosity",
         nav_percent: "Percentage of 2 Bases",
+        nav_solver: "Solver",
         lang_button: "FR",
         vi_heading: "Viscosity Index (VI) Calculator",
         vi_desc: "Enter two viscosity measurements at different temperatures to compute the viscosity at 40 \u00b0C, viscosity at 100 \u00b0C and the Viscosity Index.",
@@ -245,7 +260,24 @@
         temp_table_heading_temp: "Temperature (\u00b0C)",
         temp_table_heading_visc: "Viscosity (mm\u00b2/s)",
         temp_result_estimated: (temp, visc) => `Estimated viscosity at ${temp.toFixed(1)}\u00b0C: ${visc.toFixed(3)} mm\u00b2/s`,
-        mix_table_const: (i) => `Constituent ${i}`
+        mix_table_const: (i) => `Constituent ${i}`,
+        solver_heading: "Mixture Solver",
+        solver_desc: "Solve mixture percentages or viscosity given constraints.",
+        solver_count_label: "Number of constituents:",
+        solver_generate: "Generate Inputs",
+        solver_visc_label: "Viscosity (mm\u00b2/s)",
+        solver_constraint_label: "Constraint",
+        solver_value_label: "Value (%)",
+        solver_min_label: "Min (%)",
+        solver_max_label: "Max (%)",
+        solver_visc_result_label: "Mixture viscosity (mm\u00b2/s)",
+        solver_solve: "Solve",
+        solver_result_prefix: "Solution:",
+        constraint_fixed: "Fixed",
+        constraint_range: "Range",
+        constraint_objective: "Objective",
+        error_objective_only_one: "Exactly one variable must be set as objective.",
+        error_no_solution: "No solution found for given constraints."
       },
       FR: {
         title: "Outils de calcul de viscosité",
@@ -254,6 +286,7 @@
         nav_temp: "Viscosité en fonction de la température",
         nav_mix: "Viscosité du mélange",
         nav_percent: "Pourcentage de 2 bases",
+        nav_solver: "Solveur",
         lang_button: "EN",
         vi_heading: "Calculateur d'indice de viscosité (VI)",
         vi_desc: "Saisissez deux mesures de viscosité à des températures différentes pour calculer la viscosité à 40 °C, la viscosité à 100 °C et l'indice de viscosité.",
@@ -309,7 +342,24 @@
         temp_table_heading_temp: "Température (\u00b0C)",
         temp_table_heading_visc: "Viscosité (mm\u00b2/s)",
         temp_result_estimated: (temp, visc) => `Viscosité estimée à ${temp.toFixed(1)} °C : ${visc.toFixed(3)} mm\u00b2/s`,
-        mix_table_const: (i) => `Constituant ${i}`
+        mix_table_const: (i) => `Constituant ${i}`,
+        solver_heading: "Solveur de mélange",
+        solver_desc: "Résoudre les pourcentages du mélange ou la viscosité avec des contraintes.",
+        solver_count_label: "Nombre de constituants:",
+        solver_generate: "Générer les champs",
+        solver_visc_label: "Viscosité (mm\u00b2/s)",
+        solver_constraint_label: "Contrainte",
+        solver_value_label: "Valeur (%)",
+        solver_min_label: "Min (%)",
+        solver_max_label: "Max (%)",
+        solver_visc_result_label: "Viscosité du mélange (mm\u00b2/s)",
+        solver_solve: "Résoudre",
+        solver_result_prefix: "Solution:",
+        constraint_fixed: "Fixe",
+        constraint_range: "Intervalle",
+        constraint_objective: "Objectif",
+        error_objective_only_one: "Exactement une variable doit être définie comme objectif.",
+        error_no_solution: "Aucune solution trouvée pour les contraintes données."
       }
     };
     let currentLang = 'EN';
@@ -329,6 +379,7 @@
       document.getElementById('btn-temp').textContent = t('nav_temp');
       document.getElementById('btn-mix').textContent = t('nav_mix');
       document.getElementById('btn-percent').textContent = t('nav_percent');
+      document.getElementById('btn-solver').textContent = t('nav_solver');
       document.getElementById('lang-switch').textContent = t('lang_button');
       // VI section
       document.getElementById('vi-heading').textContent = t('vi_heading');
@@ -362,6 +413,12 @@
       document.getElementById('per-viscA-label').childNodes[0].nodeValue = t('per_viscA_label') + ' ';
       document.getElementById('per-viscB-label').childNodes[0].nodeValue = t('per_viscB_label') + ' ';
       document.getElementById('per-calc').textContent = t('per_compute');
+      // Solver section
+      document.getElementById('solver-heading').textContent = t('solver_heading');
+      document.getElementById('solver-desc').textContent = t('solver_desc');
+      document.getElementById('solver-count-label').childNodes[0].nodeValue = t('solver_count_label') + ' ';
+      document.getElementById('solver-generate').textContent = t('solver_generate');
+      document.getElementById('solver-solve').textContent = t('solver_solve');
       // If any tables are present, update their headings as well
       const mixInputsTable = document.querySelector('#mix-inputs table');
       if (mixInputsTable) {
@@ -381,6 +438,36 @@
           ths2[2].textContent = t('mix_viscosity');
         }
       }
+      const solverTable = document.querySelector('#solver-inputs table');
+      if (solverTable) {
+        const ths4 = solverTable.querySelectorAll('th');
+        if (ths4.length >= 6) {
+          ths4[0].textContent = t('mix_constituent');
+          ths4[1].textContent = t('solver_visc_label');
+          ths4[2].textContent = t('solver_constraint_label');
+          ths4[3].textContent = t('solver_value_label');
+          ths4[4].textContent = t('solver_min_label');
+          ths4[5].textContent = t('solver_max_label');
+        }
+        solverTable.querySelectorAll('select').forEach(sel => {
+          const val = sel.value;
+          sel.innerHTML = '<option value="fixed">' + t('constraint_fixed') + '</option><option value="range">' + t('constraint_range') + '</option><option value="objective">' + t('constraint_objective') + '</option>';
+          sel.value = val;
+        });
+      }
+      const viscDiv = document.getElementById('solver-visc-constraint');
+      if (viscDiv && viscDiv.innerHTML.trim() !== '') {
+        const typeVal = document.getElementById('sol-visc-type').value;
+        const valVal = document.getElementById('sol-visc-val').value;
+        const minVal = document.getElementById('sol-visc-min').value;
+        const maxVal = document.getElementById('sol-visc-max').value;
+        viscDiv.innerHTML = '<label>' + t('solver_visc_result_label') + ': ' +
+          '<select id="sol-visc-type"><option value="fixed">' + t('constraint_fixed') + '</option><option value="range">' + t('constraint_range') + '</option><option value="objective">' + t('constraint_objective') + '</option></select></label>' +
+          '<label> ' + t('solver_value_label') + ' <input type="number" step="any" min="0" id="sol-visc-val" value="' + valVal + '"></label>' +
+          '<label> ' + t('solver_min_label') + ' <input type="number" step="any" min="0" id="sol-visc-min" value="' + minVal + '"></label>' +
+          '<label> ' + t('solver_max_label') + ' <input type="number" step="any" min="0" id="sol-visc-max" value="' + maxVal + '"></label>';
+        document.getElementById('sol-visc-type').value = typeVal;
+      }
       // Update temperature results table if present
       const tempTable = document.querySelector('#temp-table-container table');
       if (tempTable) {
@@ -395,7 +482,8 @@
       'btn-vi': 'vi-section',
       'btn-temp': 'temp-section',
       'btn-mix': 'mix-section',
-      'btn-percent': 'percent-section'
+      'btn-percent': 'percent-section',
+      'btn-solver': 'solver-section'
     };
     Object.keys(sections).forEach(btnId => {
       document.getElementById(btnId).addEventListener('click', () => {
@@ -836,6 +924,180 @@
         '<strong>' + t('per_result_A') + '</strong> ' + percA.toFixed(2) + ' %<br>' +
         '<strong>' + t('per_result_B') + '</strong> ' + percB.toFixed(2) + ' %' +
         '</div>';
+    });
+    // Solver logic
+    const solverInputsDiv = document.getElementById('solver-inputs');
+    document.getElementById('solver-generate').addEventListener('click', () => {
+      const count = parseInt(document.getElementById('solver-count').value);
+      solverInputsDiv.innerHTML = '';
+      if (isNaN(count) || count < 1 || count > 5) {
+        solverInputsDiv.innerHTML = `<p class="error">${t('error_invalid_constituents')}</p>`;
+        document.getElementById('solver-solve').style.display = 'none';
+        return;
+      }
+      let html = '<table><tr><th>' + t('mix_constituent') + '</th><th>' + t('solver_visc_label') + '</th><th>' + t('solver_constraint_label') + '</th><th>' + t('solver_value_label') + '</th><th>' + t('solver_min_label') + '</th><th>' + t('solver_max_label') + '</th></tr>';
+      for (let i = 0; i < count; i++) {
+        html += '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><input type="number" step="any" min="0" id="sol-visc-' + i + '"></td>' +
+          '<td><select id="sol-type-' + i + '"><option value="fixed">' + t('constraint_fixed') + '</option><option value="range">' + t('constraint_range') + '</option><option value="objective">' + t('constraint_objective') + '</option></select></td>' +
+          '<td><input type="number" step="any" min="0" id="sol-val-' + i + '"></td>' +
+          '<td><input type="number" step="any" min="0" id="sol-min-' + i + '"></td>' +
+          '<td><input type="number" step="any" min="0" id="sol-max-' + i + '"></td>' +
+          '</tr>';
+      }
+      html += '</table>';
+      solverInputsDiv.innerHTML = html;
+      document.getElementById('solver-visc-constraint').innerHTML =
+        '<label>' + t('solver_visc_result_label') + ': ' +
+        '<select id="sol-visc-type"><option value="fixed">' + t('constraint_fixed') + '</option><option value="range">' + t('constraint_range') + '</option><option value="objective">' + t('constraint_objective') + '</option></select></label>' +
+        '<label> ' + t('solver_value_label') + ' <input type="number" step="any" min="0" id="sol-visc-val"></label>' +
+        '<label> ' + t('solver_min_label') + ' <input type="number" step="any" min="0" id="sol-visc-min"></label>' +
+        '<label> ' + t('solver_max_label') + ' <input type="number" step="any" min="0" id="sol-visc-max"></label>';
+      document.getElementById('solver-solve').style.display = 'inline-block';
+      document.getElementById('solver-result').innerHTML = '';
+    });
+
+    document.getElementById('solver-solve').addEventListener('click', () => {
+      const count = parseInt(document.getElementById('solver-count').value);
+      let viscosities = [];
+      let types = [];
+      let values = [];
+      let mins = [];
+      let maxs = [];
+      let objectiveIndex = -1;
+      let objectiveCount = 0;
+      for (let i = 0; i < count; i++) {
+        const v = parseFloat(document.getElementById('sol-visc-' + i).value);
+        const type = document.getElementById('sol-type-' + i).value;
+        const val = parseFloat(document.getElementById('sol-val-' + i).value);
+        const min = parseFloat(document.getElementById('sol-min-' + i).value);
+        const max = parseFloat(document.getElementById('sol-max-' + i).value);
+        if (isNaN(v) || v <= 0) {
+          document.getElementById('solver-result').innerHTML = `<p class="error">${t('error_fill_all')}</p>`;
+          return;
+        }
+        viscosities.push(v);
+        types.push(type);
+        values.push(val);
+        mins.push(isNaN(min) ? 0 : min);
+        maxs.push(isNaN(max) ? 100 : max);
+        if (type === 'fixed' && isNaN(val)) {
+          document.getElementById('solver-result').innerHTML = `<p class="error">${t('error_fill_all')}</p>`;
+          return;
+        }
+        if (type === 'objective') {
+          objectiveIndex = i;
+          objectiveCount++;
+        }
+      }
+      const viscType = document.getElementById('sol-visc-type').value;
+      const viscVal = parseFloat(document.getElementById('sol-visc-val').value);
+      const viscMin = parseFloat(document.getElementById('sol-visc-min').value);
+      const viscMax = parseFloat(document.getElementById('sol-visc-max').value);
+      let objectiveIsVisc = false;
+      if (viscType === 'objective') {
+        objectiveIsVisc = true;
+        objectiveCount++;
+      }
+      if (objectiveCount !== 1) {
+        document.getElementById('solver-result').innerHTML = `<p class="error">${t('error_objective_only_one')}</p>`;
+        return;
+      }
+      const step = 1;
+      if (objectiveIsVisc) {
+        let best = null;
+        let bestVisc = -Infinity;
+        function search(i, remaining, current) {
+          if (i === count) {
+            if (Math.abs(remaining) > 1e-6) return;
+            let Lsum = 0;
+            for (let j = 0; j < count; j++) {
+              const frac = current[j] / 100;
+              Lsum += frac * log10(log10(viscosities[j] + 0.7));
+            }
+            const mixture = Math.pow(10, Math.pow(10, Lsum)) - 0.7;
+            if (mixture > bestVisc) {
+              bestVisc = mixture;
+              best = {perc: current.slice(), mixture};
+            }
+            return;
+          }
+          const type = types[i];
+          let start, end;
+          if (type === 'fixed') {
+            start = end = values[i];
+          } else {
+            start = mins[i];
+            end = maxs[i];
+          }
+          for (let val = start; val <= end; val += step) {
+            if (val > remaining + 1e-6) break;
+            current[i] = val;
+            search(i + 1, remaining - val, current);
+          }
+        }
+        search(0, 100, new Array(count));
+        if (!best) {
+          document.getElementById('solver-result').innerHTML = `<p class="error">${t('error_no_solution')}</p>`;
+          return;
+        }
+        let resHtml = '<div class="result"><strong>' + t('solver_result_prefix') + '</strong><br>';
+        for (let i = 0; i < count; i++) {
+          resHtml += t('mix_table_const', i + 1) + ': ' + best.perc[i].toFixed(2) + ' %<br>';
+        }
+        resHtml += t('mix_result_prefix') + ' ' + best.mixture.toFixed(3) + ' mm²/s';
+        resHtml += '</div>';
+        document.getElementById('solver-result').innerHTML = resHtml;
+        return;
+      }
+      let solution = null;
+      function search(i, remaining, current) {
+        if (solution) return;
+        if (i === count) {
+          current[objectiveIndex] = remaining;
+          if (current[objectiveIndex] < mins[objectiveIndex] || current[objectiveIndex] > maxs[objectiveIndex]) return;
+          let Lsum = 0;
+          for (let j = 0; j < count; j++) {
+            const frac = current[j] / 100;
+            Lsum += frac * log10(log10(viscosities[j] + 0.7));
+          }
+          const mixture = Math.pow(10, Math.pow(10, Lsum)) - 0.7;
+          if (viscType === 'fixed' && Math.abs(mixture - viscVal) > 1e-6) return;
+          if (viscType === 'range' && (mixture < viscMin || mixture > viscMax)) return;
+          solution = {perc: current.slice(), mixture};
+          return;
+        }
+        if (i === objectiveIndex) {
+          search(i + 1, remaining, current);
+          return;
+        }
+        const type = types[i];
+        let start, end;
+        if (type === 'fixed') {
+          start = end = values[i];
+        } else {
+          start = mins[i];
+          end = maxs[i];
+        }
+        for (let val = start; val <= end; val += step) {
+          if (val > remaining + 1e-6) break;
+          current[i] = val;
+          search(i + 1, remaining - val, current);
+        }
+      }
+      search(0, 100, new Array(count));
+      if (!solution) {
+        document.getElementById('solver-result').innerHTML = `<p class="error">${t('error_no_solution')}</p>`;
+        return;
+      }
+      let resHtml = '<div class="result"><strong>' + t('solver_result_prefix') + '</strong><br>';
+      for (let i = 0; i < count; i++) {
+        resHtml += t('mix_table_const', i + 1) + ': ' + solution.perc[i].toFixed(2) + ' %<br>';
+      }
+      resHtml += t('mix_result_prefix') + ' ' + solution.mixture.toFixed(3) + ' mm²/s';
+      resHtml += '</div>';
+      document.getElementById('solver-result').innerHTML = resHtml;
     });
 
     // Language switcher event
