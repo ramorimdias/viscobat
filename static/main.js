@@ -130,11 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const initial = el.type === 'checkbox' ? el.checked : el.value;
       setStored('vb_' + el.id, initial);
     }
-    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
-    el.addEventListener(evt, () => {
-      const val = el.type === 'checkbox' ? el.checked : el.value;
-      setStored('vb_' + el.id, val);
-    });
+    ['input', 'change'].forEach(evt =>
+      el.addEventListener(evt, () => {
+        const val = el.type === 'checkbox' ? el.checked : el.value;
+        setStored('vb_' + el.id, val);
+      })
+    );
   });
 
   document.getElementById('reset-btn').addEventListener('click', () => {
