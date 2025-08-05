@@ -126,7 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.value = saved;
       }
     }
-    el.addEventListener('input', () => {
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, () => {
       const val = el.type === 'checkbox' ? el.checked : el.value;
       setStored('vb_' + el.id, val);
     });
