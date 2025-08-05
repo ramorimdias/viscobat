@@ -85,6 +85,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function registerPersistent(el) {
+    if (!el || !el.id) return;
+    const saved = getStored('vb_' + el.id);
+    if (saved) {
+      if (el.type === 'checkbox') {
+        el.checked = saved === 'true';
+      } else {
+        el.value = saved;
+      }
+    } else {
+      const initial = el.type === 'checkbox' ? el.checked : el.value;
+      setStored('vb_' + el.id, initial);
+    }
+    ['input', 'change'].forEach(evt =>
+      el.addEventListener(evt, () => {
+        const val = el.type === 'checkbox' ? el.checked : el.value;
+        setStored('vb_' + el.id, val);
+      })
+    );
+  }
+
   let currentLang = getStored('vb_language') || 'FR';
   setStored('vb_language', currentLang);
   const languageSelect = document.getElementById('languageSelect');
@@ -117,26 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
   translatePage();
 
   // Restore saved form values and persist changes
-  document.querySelectorAll('input, select').forEach(el => {
-    if (!el.id) return;
-    const saved = getStored('vb_' + el.id);
-    if (saved) {
-      if (el.type === 'checkbox') {
-        el.checked = saved === 'true';
-      } else {
-        el.value = saved;
-      }
-    } else {
-      const initial = el.type === 'checkbox' ? el.checked : el.value;
-      setStored('vb_' + el.id, initial);
-    }
-    ['input', 'change'].forEach(evt =>
-      el.addEventListener(evt, () => {
-        const val = el.type === 'checkbox' ? el.checked : el.value;
-        setStored('vb_' + el.id, val);
-      })
-    );
-  });
+  document.querySelectorAll('input, select').forEach(registerPersistent);
 
   document.getElementById('reset-btn').addEventListener('click', () => {
     clearPrefixedStorage('vb_');
@@ -427,6 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputPercent.step = 'any';
     inputPercent.value = percent;
     inputPercent.min = '0';
+    inputPercent.id = `mix-percent-${rowIndex}`;
     tdPercent.appendChild(inputPercent);
     tr.appendChild(tdPercent);
     // viscosity cell
@@ -436,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputVisc.step = 'any';
     inputVisc.value = viscosity;
     inputVisc.min = '0';
+    inputVisc.id = `mix-visc-${rowIndex}`;
     tdVisc.appendChild(inputVisc);
     tr.appendChild(tdVisc);
     // remove button cell
@@ -451,11 +455,27 @@ document.addEventListener('DOMContentLoaded', () => {
     tdRemove.appendChild(removeBtn);
     tr.appendChild(tdRemove);
     mixtureTableBody.appendChild(tr);
+    registerPersistent(inputPercent);
+    registerPersistent(inputVisc);
   }
 
   function updateMixtureIndices() {
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('vb_mix-percent-') || key.startsWith('vb_mix-visc-')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) { /* ignore */ }
     Array.from(mixtureTableBody.children).forEach((tr, idx) => {
-      tr.children[0].textContent = idx + 1;
+      const index = idx + 1;
+      tr.children[0].textContent = index;
+      const percentInput = tr.children[1].children[0];
+      const viscInput = tr.children[2].children[0];
+      percentInput.id = `mix-percent-${index}`;
+      viscInput.id = `mix-visc-${index}`;
+      setStored('vb_' + percentInput.id, percentInput.value);
+      setStored('vb_' + viscInput.id, viscInput.value);
     });
   }
 
