@@ -37,12 +37,6 @@ body {
   color: #c62828; /* red accent */
 }
 
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .lang-select select {
   padding: 0.25rem;
   font-size: 1rem;
