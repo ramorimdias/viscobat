@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="app_title">Application de viscosité</title>
+  <!-- Favicon and application icon -->
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+  <!-- Custom stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo-container">
+      <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo" class="logo">
+      <span class="app-title" data-i18n="app_name">Application de viscosité</span>
+    </div>
+    <div class="lang-select">
+      <label for="languageSelect" class="visually-hidden">Langue</label>
+      <select id="languageSelect">
+        <option value="FR">FR</option>
+        <option value="EN">EN</option>
+      </select>
+    </div>
+  </header>
+  <nav class="tab-bar">
+    <button class="tab-button active" data-tab="vi" data-i18n="tab_vi">Indice de viscosité</button>
+    <button class="tab-button" data-tab="temp" data-i18n="tab_temp">Viscosité vs Température</button>
+    <button class="tab-button" data-tab="mixture" data-i18n="tab_mixture">Mélange</button>
+    <button class="tab-button" data-tab="twoBases" data-i18n="tab_two_bases">Mélange 2 bases</button>
+    <button class="tab-button" data-tab="solver" data-i18n="tab_solver">Solveur</button>
+  </nav>
+  <main class="content">
+    <!-- Tab: Viscosity Index -->
+    <section id="tab-vi" class="tab-content active">
+      <h2 data-i18n="vi_heading">Indice de viscosité</h2>
+      <form id="viForm" class="form-grid">
+        <div class="form-row">
+          <label for="vi-v1" data-i18n="label_v1">Viscosité 1 (mm²/s)</label>
+          <input type="number" step="any" id="vi-v1" required>
+        </div>
+        <div class="form-row">
+          <label for="vi-t1" data-i18n="label_t1">Température 1 (°C)</label>
+          <input type="number" step="any" id="vi-t1" value="40" required>
+        </div>
+        <div class="form-row">
+          <label for="vi-v2" data-i18n="label_v2">Viscosité 2 (mm²/s)</label>
+          <input type="number" step="any" id="vi-v2" required>
+        </div>
+        <div class="form-row">
+          <label for="vi-t2" data-i18n="label_t2">Température 2 (°C)</label>
+          <input type="number" step="any" id="vi-t2" value="100" required>
+        </div>
+        <div class="form-row full-row">
+          <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+        </div>
+      </form>
+      <div id="vi-result" class="result"></div>
+    </section>
+
+    <!-- Tab: Temperature vs Viscosity -->
+    <section id="tab-temp" class="tab-content">
+      <h2 data-i18n="temp_heading">Viscosité en fonction de la température</h2>
+      <form id="tempForm" class="form-grid">
+        <div class="form-row">
+          <label for="temp-v1" data-i18n="label_v1">Viscosité 1 (mm²/s)</label>
+          <input type="number" step="any" id="temp-v1" required>
+        </div>
+        <div class="form-row">
+          <label for="temp-t1" data-i18n="label_t1">Température 1 (°C)</label>
+          <input type="number" step="any" id="temp-t1" value="40" required>
+        </div>
+        <div class="form-row">
+          <label for="temp-v2" data-i18n="label_v2">Viscosité 2 (mm²/s)</label>
+          <input type="number" step="any" id="temp-v2" required>
+        </div>
+        <div class="form-row">
+          <label for="temp-t2" data-i18n="label_t2">Température 2 (°C)</label>
+          <input type="number" step="any" id="temp-t2" value="100" required>
+        </div>
+        <div class="form-row">
+          <label for="temp-target" data-i18n="label_target_temp">Température voulue (°C)</label>
+          <input type="number" step="any" id="temp-target" value="20" required>
+        </div>
+        <div class="form-row full-row">
+          <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+        </div>
+      </form>
+      <div id="temp-target-result" class="result"></div>
+      <div class="table-wrapper">
+        <table id="temp-table">
+          <thead>
+            <tr>
+              <th data-i18n="table_temp">Température (°C)</th>
+              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <canvas id="temp-chart" width="600" height="300"></canvas>
+    </section>
+
+    <!-- Tab: Mixture -->
+    <section id="tab-mixture" class="tab-content">
+      <h2 data-i18n="mixture_heading">Mélange de plusieurs constituants</h2>
+      <div class="mixture-controls">
+        <button id="add-component-btn" class="secondary-btn" data-i18n="btn_add_component">Ajouter un constituant</button>
+      </div>
+      <form id="mixtureForm">
+        <table id="mixture-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th data-i18n="table_percent">% masse</th>
+              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- dynamic rows here -->
+          </tbody>
+        </table>
+        <div class="form-row full-row">
+          <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+        </div>
+      </form>
+      <div id="mixture-result" class="result"></div>
+    </section>
+
+    <!-- Tab: Two bases mixture -->
+    <section id="tab-twoBases" class="tab-content">
+      <h2 data-i18n="two_bases_heading">Mélange avec deux bases</h2>
+      <form id="twoBasesForm" class="form-grid">
+        <div class="form-row">
+          <label for="tb-target" data-i18n="label_target_mix">Viscosité du mélange cible (mm²/s)</label>
+          <input type="number" step="any" id="tb-target" value="100" required>
+        </div>
+        <div class="form-row">
+          <label for="tb-baseA" data-i18n="label_baseA">Viscosité du constituant A (mm²/s)</label>
+          <input type="number" step="any" id="tb-baseA" value="1700" required>
+        </div>
+        <div class="form-row">
+          <label for="tb-baseB" data-i18n="label_baseB">Viscosité du constituant B (mm²/s)</label>
+          <input type="number" step="any" id="tb-baseB" value="48" required>
+        </div>
+        <div class="form-row full-row">
+          <button type="button" id="add-known-btn" class="secondary-btn" data-i18n="btn_add_known">Ajouter un constituant connu</button>
+        </div>
+        <table id="known-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th data-i18n="table_percent">% masse</th>
+              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="form-row full-row">
+          <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+        </div>
+      </form>
+      <div id="twoBases-result" class="result"></div>
+    </section>
+
+    <!-- Tab: Solver -->
+    <section id="tab-solver" class="tab-content">
+      <h2 data-i18n="solver_heading">Solveur de formulation</h2>
+      <div class="solver-controls">
+        <button id="add-solver-comp-btn" class="secondary-btn" data-i18n="btn_add_component">Ajouter un constituant</button>
+      </div>
+      <form id="solverForm">
+        <table id="solver-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+              <th data-i18n="solver_type">Contrainte</th>
+              <th data-i18n="solver_value">Valeur/Intervalle</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="solver-mixture">
+          <h3 data-i18n="solver_mix">Contrainte sur la viscosité du mélange</h3>
+          <div class="form-row">
+            <label for="mix-constraint" data-i18n="solver_mix_type">Type</label>
+            <select id="mix-constraint">
+              <option value="free" data-i18n="solver_free">Libre</option>
+              <option value="range" data-i18n="solver_range">Intervalle</option>
+              <option value="objectiveMin" data-i18n="solver_min">Minimiser</option>
+              <option value="objectiveMax" data-i18n="solver_max">Maximiser</option>
+              <option value="setValue" data-i18n="solver_set">Fixer une valeur</option>
+            </select>
+          </div>
+          <div class="form-row" id="mix-value-row" style="display:none;">
+            <label for="mix-value" data-i18n="solver_value">Valeur</label>
+            <input type="number" step="any" id="mix-value">
+          </div>
+          <div class="form-row" id="mix-range-row" style="display:none;">
+            <label for="mix-min" data-i18n="solver_min_value">Min</label>
+            <input type="number" step="any" id="mix-min">
+            <label for="mix-max" data-i18n="solver_max_value">Max</label>
+            <input type="number" step="any" id="mix-max">
+          </div>
+        </div>
+        <div class="form-row full-row">
+          <button type="submit" class="primary-btn" data-i18n="btn_solve">Résoudre</button>
+        </div>
+      </form>
+      <div id="solver-result" class="result"></div>
+    </section>
+  </main>
+  <!-- Main script -->
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
