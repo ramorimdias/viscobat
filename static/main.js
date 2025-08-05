@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let currentLang = getStored('vb_language') || 'FR';
+  setStored('vb_language', currentLang);
   const languageSelect = document.getElementById('languageSelect');
   languageSelect.value = currentLang;
 
@@ -125,6 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         el.value = saved;
       }
+    } else {
+      const initial = el.type === 'checkbox' ? el.checked : el.value;
+      setStored('vb_' + el.id, initial);
     }
     const evt = el.tagName === 'SELECT' ? 'change' : 'input';
     el.addEventListener(evt, () => {
