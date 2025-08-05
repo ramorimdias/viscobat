@@ -73,6 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function removeStored(name) {
+    try {
+      localStorage.removeItem(name);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function clearPrefixedStorage(prefix) {
     try {
       Object.keys(localStorage).forEach(key => {
@@ -86,7 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function registerPersistent(el) {
+
+
     if (!el || !el.id) return;
+
     const saved = getStored('vb_' + el.id);
     if (saved) {
       if (el.type === 'checkbox') {
@@ -98,12 +109,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const initial = el.type === 'checkbox' ? el.checked : el.value;
       setStored('vb_' + el.id, initial);
     }
-    ['input', 'change'].forEach(evt =>
-      el.addEventListener(evt, () => {
-        const val = el.type === 'checkbox' ? el.checked : el.value;
-        setStored('vb_' + el.id, val);
-      })
-    );
+
+    if (!el.dataset.persistRegistered) {
+      ['input', 'change'].forEach(evt =>
+        el.addEventListener(evt, () => {
+          const val = el.type === 'checkbox' ? el.checked : el.value;
+          setStored('vb_' + el.id, val);
+        })
+      );
+      el.dataset.persistRegistered = 'true';
+    }
+
+
   }
 
   let currentLang = getStored('vb_language') || 'FR';
@@ -640,11 +657,13 @@ document.addEventListener('DOMContentLoaded', () => {
     inputVisc.step = 'any';
     inputVisc.value = viscosity;
     inputVisc.min = '0';
+    inputVisc.id = `solver-visc-${rowIndex}`;
     tdVisc.appendChild(inputVisc);
     tr.appendChild(tdVisc);
     // type select
     const tdType = document.createElement('td');
     const selectType = document.createElement('select');
+    selectType.id = `solver-type-${rowIndex}`;
     [
       { value: 'free', label: translations['solver_free'][currentLang] || 'Free' },
       { value: 'range', label: translations['solver_range'][currentLang] || 'Range' },
@@ -668,18 +687,21 @@ document.addEventListener('DOMContentLoaded', () => {
     valueInput.step = 'any';
     valueInput.style.display = 'none';
     valueInput.value = value;
+    valueInput.id = `solver-value-${rowIndex}`;
     // range min
     const rangeMinInput = document.createElement('input');
     rangeMinInput.type = 'number';
     rangeMinInput.step = 'any';
     rangeMinInput.style.display = 'none';
     rangeMinInput.value = min;
+    rangeMinInput.id = `solver-min-${rowIndex}`;
     // range max
     const rangeMaxInput = document.createElement('input');
     rangeMaxInput.type = 'number';
     rangeMaxInput.step = 'any';
     rangeMaxInput.style.display = 'none';
     rangeMaxInput.value = max;
+    rangeMaxInput.id = `solver-max-${rowIndex}`;
     // labels for range inputs
     const minLabel = document.createElement('span');
     minLabel.textContent = translations['solver_min_value'][currentLang] || 'Min';
@@ -700,12 +722,16 @@ document.addEventListener('DOMContentLoaded', () => {
     removeBtn.textContent = '×';
     removeBtn.className = 'secondary-btn';
     removeBtn.addEventListener('click', () => {
+      [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(el => {
+        if (el.id) removeStored('vb_' + el.id);
+      });
       solverTableBody.removeChild(tr);
       updateSolverIndices();
     });
     tdRemove.appendChild(removeBtn);
     tr.appendChild(tdRemove);
     solverTableBody.appendChild(tr);
+    [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
     // update visibility according to type
     function updateVisibility() {
       const selVal = selectType.value;
@@ -738,6 +764,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateSolverIndices() {
     Array.from(solverTableBody.children).forEach((tr, idx) => {
       tr.children[0].textContent = idx + 1;
+      const rowIndex = idx + 1;
+      const inputVisc = tr.children[1].querySelector('input');
+      const selectType = tr.children[2].querySelector('select');
+      const inputs = tr.children[3].querySelectorAll('input');
+      const valueInput = inputs[0];
+      const rangeMinInput = inputs[1];
+      const rangeMaxInput = inputs[2];
+      [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(el => {
+        if (el.id) removeStored('vb_' + el.id);
+      });
+      inputVisc.id = `solver-visc-${rowIndex}`;
+      selectType.id = `solver-type-${rowIndex}`;
+      valueInput.id = `solver-value-${rowIndex}`;
+      rangeMinInput.id = `solver-min-${rowIndex}`;
+      rangeMaxInput.id = `solver-max-${rowIndex}`;
+      [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
     });
   }
 
