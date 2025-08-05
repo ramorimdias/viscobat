@@ -9,8 +9,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   /* --- Translation dictionary --- */
   const translations = {
-    app_title: { FR: 'Application de viscosité', EN: 'Viscosity Application' },
-    app_name: { FR: 'Application de viscosité', EN: 'Viscosity Application' },
+    app_title: { FR: 'Viscobat - Application de viscosité', EN: 'Viscobat - Fluid Viscosity App' },
+    app_name: { FR: 'Viscobat - Application de viscosité', EN: 'Viscobat - Fluid Viscosity App' },
     tab_vi: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
     tab_temp: { FR: 'Viscosité vs Température', EN: 'Viscosity vs Temperature' },
     tab_mixture: { FR: 'Mélange', EN: 'Mixture' },
@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn_solve: { FR: 'Résoudre', EN: 'Solve' },
     btn_add_component: { FR: 'Ajouter un constituant', EN: 'Add component' },
     btn_add_known: { FR: 'Ajouter un constituant connu', EN: 'Add known component' },
+    btn_refresh: { FR: 'Rafraîchir', EN: 'Refresh' },
     table_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
     table_visc: { FR: 'Viscosité (mm²/s)', EN: 'Viscosity (mm²/s)' },
     table_percent: { FR: '% masse', EN: '% mass' },
@@ -55,7 +56,33 @@ document.addEventListener('DOMContentLoaded', () => {
     solver_set: { FR: 'Fixer une valeur', EN: 'Set value' }
   };
 
-  let currentLang = 'FR';
+  function setCookie(name, value, days = 365) {
+    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/`;
+  }
+
+  function getCookie(name) {
+    const cookies = document.cookie.split(';');
+    for (const c of cookies) {
+      const [k, v] = c.trim().split('=');
+      if (k === name) {
+        return decodeURIComponent(v);
+      }
+    }
+    return '';
+  }
+
+  function clearPrefixedCookies(prefix) {
+    document.cookie.split(';').forEach(c => {
+      const eqPos = c.indexOf('=');
+      const key = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+      if (key.startsWith(prefix)) {
+        document.cookie = key + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+      }
+    });
+  }
+
+  let currentLang = getCookie('vb_language') || 'FR';
   const languageSelect = document.getElementById('languageSelect');
   languageSelect.value = currentLang;
 
@@ -68,17 +95,44 @@ document.addEventListener('DOMContentLoaded', () => {
       const key = el.getAttribute('data-i18n');
       const trans = translations[key];
       if (trans && trans[currentLang]) {
-        el.textContent = trans[currentLang];
+        if (el.tagName.toLowerCase() === 'title') {
+          document.title = trans[currentLang];
+        } else {
+          el.textContent = trans[currentLang];
+        }
       }
     });
   }
 
   languageSelect.addEventListener('change', () => {
     currentLang = languageSelect.value;
+    setCookie('vb_language', currentLang);
     translatePage();
   });
 
   translatePage();
+
+  // Restore saved form values and persist changes
+  document.querySelectorAll('input, select').forEach(el => {
+    if (!el.id) return;
+    const saved = getCookie('vb_' + el.id);
+    if (saved) {
+      if (el.type === 'checkbox') {
+        el.checked = saved === 'true';
+      } else {
+        el.value = saved;
+      }
+    }
+    el.addEventListener('input', () => {
+      const val = el.type === 'checkbox' ? el.checked : el.value;
+      setCookie('vb_' + el.id, val);
+    });
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    clearPrefixedCookies('vb_');
+    window.location.reload();
+  });
 
   /* --- Tab navigation --- */
   document.querySelectorAll('.tab-button').forEach(button => {

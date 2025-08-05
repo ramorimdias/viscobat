@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n="app_title">Application de viscosité</title>
+  <title data-i18n="app_title">Viscobat - Application de viscosité</title>
   <!-- Favicon and application icon -->
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
   <!-- Custom stylesheet -->
@@ -13,14 +13,17 @@
   <header class="app-header">
     <div class="logo-container">
       <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo" class="logo">
-      <span class="app-title" data-i18n="app_name">Application de viscosité</span>
+      <span class="app-title" data-i18n="app_name">Viscobat - Application de viscosité</span>
     </div>
-    <div class="lang-select">
-      <label for="languageSelect" class="visually-hidden">Langue</label>
-      <select id="languageSelect">
-        <option value="FR">FR</option>
-        <option value="EN">EN</option>
-      </select>
+    <div class="header-controls">
+      <div class="lang-select">
+        <label for="languageSelect" class="visually-hidden">Langue</label>
+        <select id="languageSelect">
+          <option value="FR">FR</option>
+          <option value="EN">EN</option>
+        </select>
+      </div>
+      <button id="reset-btn" class="secondary-btn" data-i18n="btn_refresh">Rafraîchir</button>
     </div>
   </header>
   <nav class="tab-bar">
@@ -37,7 +40,7 @@
       <form id="viForm" class="form-grid">
         <div class="form-row">
           <label for="vi-v1" data-i18n="label_v1">Viscosité 1 (mm²/s)</label>
-          <input type="number" step="any" id="vi-v1" value="8.4" required>
+          <input type="number" step="any" id="vi-v1" required>
         </div>
         <div class="form-row">
           <label for="vi-t1" data-i18n="label_t1">Température 1 (°C)</label>
@@ -45,7 +48,7 @@
         </div>
         <div class="form-row">
           <label for="vi-v2" data-i18n="label_v2">Viscosité 2 (mm²/s)</label>
-          <input type="number" step="any" id="vi-v2" value="2.5" required>
+          <input type="number" step="any" id="vi-v2" required>
         </div>
         <div class="form-row">
           <label for="vi-t2" data-i18n="label_t2">Température 2 (°C)</label>
@@ -64,7 +67,7 @@
       <form id="tempForm" class="form-grid">
         <div class="form-row">
           <label for="temp-v1" data-i18n="label_v1">Viscosité 1 (mm²/s)</label>
-          <input type="number" step="any" id="temp-v1" value="8.4" required>
+          <input type="number" step="any" id="temp-v1" required>
         </div>
         <div class="form-row">
           <label for="temp-t1" data-i18n="label_t1">Température 1 (°C)</label>
@@ -72,7 +75,7 @@
         </div>
         <div class="form-row">
           <label for="temp-v2" data-i18n="label_v2">Viscosité 2 (mm²/s)</label>
-          <input type="number" step="any" id="temp-v2" value="2.5" required>
+          <input type="number" step="any" id="temp-v2" required>
         </div>
         <div class="form-row">
           <label for="temp-t2" data-i18n="label_t2">Température 2 (°C)</label>
@@ -134,15 +137,15 @@
       <form id="twoBasesForm" class="form-grid">
         <div class="form-row">
           <label for="tb-target" data-i18n="label_target_mix">Viscosité du mélange cible (mm²/s)</label>
-          <input type="number" step="any" id="tb-target" value="100" required>
+          <input type="number" step="any" id="tb-target" required>
         </div>
         <div class="form-row">
           <label for="tb-baseA" data-i18n="label_baseA">Viscosité du constituant A (mm²/s)</label>
-          <input type="number" step="any" id="tb-baseA" value="1700" required>
+          <input type="number" step="any" id="tb-baseA" required>
         </div>
         <div class="form-row">
           <label for="tb-baseB" data-i18n="label_baseB">Viscosité du constituant B (mm²/s)</label>
-          <input type="number" step="any" id="tb-baseB" value="48" required>
+          <input type="number" step="any" id="tb-baseB" required>
         </div>
         <div class="form-row full-row">
           <button type="button" id="add-known-btn" class="secondary-btn" data-i18n="btn_add_known">Ajouter un constituant connu</button>
