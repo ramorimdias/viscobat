@@ -56,33 +56,36 @@ document.addEventListener('DOMContentLoaded', () => {
     solver_set: { FR: 'Fixer une valeur', EN: 'Set value' }
   };
 
-  function setCookie(name, value, days = 365) {
-    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/`;
-  }
-
-  function getCookie(name) {
-    const cookies = document.cookie.split(';');
-    for (const c of cookies) {
-      const [k, v] = c.trim().split('=');
-      if (k === name) {
-        return decodeURIComponent(v);
-      }
+  // --- Persistence helpers using localStorage ---
+  function setStored(name, value) {
+    try {
+      localStorage.setItem(name, value);
+    } catch (e) {
+      /* ignore storage errors */
     }
-    return '';
   }
 
-  function clearPrefixedCookies(prefix) {
-    document.cookie.split(';').forEach(c => {
-      const eqPos = c.indexOf('=');
-      const key = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-      if (key.startsWith(prefix)) {
-        document.cookie = key + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
-      }
-    });
+  function getStored(name) {
+    try {
+      return localStorage.getItem(name) || '';
+    } catch (e) {
+      return '';
+    }
   }
 
-  let currentLang = getCookie('vb_language') || 'FR';
+  function clearPrefixedStorage(prefix) {
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith(prefix)) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  let currentLang = getStored('vb_language') || 'FR';
   const languageSelect = document.getElementById('languageSelect');
   languageSelect.value = currentLang;
 
@@ -106,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   languageSelect.addEventListener('change', () => {
     currentLang = languageSelect.value;
-    setCookie('vb_language', currentLang);
+    setStored('vb_language', currentLang);
     translatePage();
   });
 
@@ -115,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restore saved form values and persist changes
   document.querySelectorAll('input, select').forEach(el => {
     if (!el.id) return;
-    const saved = getCookie('vb_' + el.id);
+    const saved = getStored('vb_' + el.id);
     if (saved) {
       if (el.type === 'checkbox') {
         el.checked = saved === 'true';
@@ -125,12 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     el.addEventListener('input', () => {
       const val = el.type === 'checkbox' ? el.checked : el.value;
-      setCookie('vb_' + el.id, val);
+      setStored('vb_' + el.id, val);
     });
   });
 
   document.getElementById('reset-btn').addEventListener('click', () => {
-    clearPrefixedCookies('vb_');
+    clearPrefixedStorage('vb_');
     window.location.reload();
   });
 
