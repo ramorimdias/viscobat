@@ -158,7 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input, select').forEach(registerPersistent);
 
   document.getElementById('reset-btn').addEventListener('click', () => {
+    const savedLang = getStored('vb_language') || currentLang;
     clearPrefixedStorage('vb_');
+    setStored('vb_language', savedLang);
     window.location.reload();
   });
 
