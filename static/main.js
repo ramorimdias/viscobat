@@ -9,8 +9,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   /* --- Translation dictionary --- */
   const translations = {
-    app_title: { FR: 'Viscobat - Application de viscosité', EN: 'Viscobat - Fluid Viscosity App' },
-    app_name: { FR: 'Viscobat - Application de viscosité', EN: 'Viscobat - Fluid Viscosity App' },
+    app_title: { FR: 'Viscobat v2.0 - Application de viscosité', EN: 'Viscobat v2.0 - Fluid Viscosity App' },
+    app_name: { FR: 'Viscobat v2.0 - Application de viscosité', EN: 'Viscobat v2.0 - Fluid Viscosity App' },
     tab_vi: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
     tab_temp: { FR: 'Viscosité vs Température', EN: 'Viscosity vs Temperature' },
     tab_mixture: { FR: 'Mélange', EN: 'Mixture' },
