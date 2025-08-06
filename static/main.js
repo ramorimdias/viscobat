@@ -433,6 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const addComponentBtn = document.getElementById('add-component-btn');
   const mixtureForm = document.getElementById('mixtureForm');
   const mixtureResultDiv = document.getElementById('mixture-result');
+  const mixRowCountKey = 'vb_mix_row_count';
 
   function addMixtureRow(percent = '', viscosity = '') {
     const rowIndex = mixtureTableBody.children.length + 1;
@@ -476,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mixtureTableBody.appendChild(tr);
     registerPersistent(inputPercent);
     registerPersistent(inputVisc);
+    setStored(mixRowCountKey, mixtureTableBody.children.length);
   }
 
   function updateMixtureIndices() {
@@ -496,14 +498,14 @@ document.addEventListener('DOMContentLoaded', () => {
       setStored('vb_' + percentInput.id, percentInput.value);
       setStored('vb_' + viscInput.id, viscInput.value);
     });
+    setStored(mixRowCountKey, mixtureTableBody.children.length);
   }
 
   addComponentBtn.addEventListener('click', () => {
     addMixtureRow();
   });
-  // initialise with two rows
-  addMixtureRow();
-  addMixtureRow();
+  const initialMixRows = parseInt(getStored(mixRowCountKey), 10) || 2;
+  for (let i = 0; i < initialMixRows; i++) addMixtureRow();
 
   mixtureForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -549,6 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const addKnownBtn = document.getElementById('add-known-btn');
   const twoBasesForm = document.getElementById('twoBasesForm');
   const twoBasesResultDiv = document.getElementById('twoBases-result');
+  const tbKnownCountKey = 'vb_tb_known_count';
 
   function addKnownRow(percent = '', viscosity = '') {
     const rowIndex = knownTableBody.children.length + 1;
@@ -562,6 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputPercent.step = 'any';
     inputPercent.value = percent;
     inputPercent.min = '0';
+    inputPercent.id = `tb-known-percent-${rowIndex}`;
     tdPercent.appendChild(inputPercent);
     tr.appendChild(tdPercent);
     const tdVisc = document.createElement('td');
@@ -570,6 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputVisc.step = 'any';
     inputVisc.value = viscosity;
     inputVisc.min = '0';
+    inputVisc.id = `tb-known-visc-${rowIndex}`;
     tdVisc.appendChild(inputVisc);
     tr.appendChild(tdVisc);
     const tdRemove = document.createElement('td');
@@ -584,18 +589,37 @@ document.addEventListener('DOMContentLoaded', () => {
     tdRemove.appendChild(removeBtn);
     tr.appendChild(tdRemove);
     knownTableBody.appendChild(tr);
+    registerPersistent(inputPercent);
+    registerPersistent(inputVisc);
+    setStored(tbKnownCountKey, knownTableBody.children.length);
   }
 
   function updateKnownIndices() {
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('vb_tb-known-percent-') || key.startsWith('vb_tb-known-visc-')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) { /* ignore */ }
     Array.from(knownTableBody.children).forEach((tr, idx) => {
-      tr.children[0].textContent = idx + 1;
+      const index = idx + 1;
+      tr.children[0].textContent = index;
+      const percentInput = tr.children[1].children[0];
+      const viscInput = tr.children[2].children[0];
+      percentInput.id = `tb-known-percent-${index}`;
+      viscInput.id = `tb-known-visc-${index}`;
+      setStored('vb_' + percentInput.id, percentInput.value);
+      setStored('vb_' + viscInput.id, viscInput.value);
     });
+    setStored(tbKnownCountKey, knownTableBody.children.length);
   }
 
   addKnownBtn.addEventListener('click', () => {
     addKnownRow();
   });
-  // start with no known components
+  const initialKnownRows = parseInt(getStored(tbKnownCountKey), 10) || 0;
+  for (let i = 0; i < initialKnownRows; i++) addKnownRow();
 
   twoBasesForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -644,6 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mixConstraintSelect = document.getElementById('mix-constraint');
   const mixValueRow = document.getElementById('mix-value-row');
   const mixRangeRow = document.getElementById('mix-range-row');
+  const solverRowCountKey = 'vb_solver_row_count';
 
   function addSolverRow(viscosity = '', type = 'free', value = '', min = '', max = '') {
     const rowIndex = solverTableBody.children.length + 1;
@@ -734,6 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tr.appendChild(tdRemove);
     solverTableBody.appendChild(tr);
     [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
+    setStored(solverRowCountKey, solverTableBody.children.length);
     // update visibility according to type
     function updateVisibility() {
       const selVal = selectType.value;
@@ -783,14 +809,14 @@ document.addEventListener('DOMContentLoaded', () => {
       rangeMaxInput.id = `solver-max-${rowIndex}`;
       [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
     });
+    setStored(solverRowCountKey, solverTableBody.children.length);
   }
 
   addSolverCompBtn.addEventListener('click', () => {
     addSolverRow();
   });
-  // start with two solver rows by default
-  addSolverRow();
-  addSolverRow();
+  const initialSolverRows = parseInt(getStored(solverRowCountKey), 10) || 2;
+  for (let i = 0; i < initialSolverRows; i++) addSolverRow();
 
   // mixture constraint type change
   mixConstraintSelect.addEventListener('change', () => {
