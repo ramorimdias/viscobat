@@ -43,6 +43,10 @@ body {
   gap: 0.5rem;
 }
 
+.motul-logo {
+  height: 32px;
+}
+
 .lang-select select {
   padding: 0.25rem;
   font-size: 1rem;
