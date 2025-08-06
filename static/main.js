@@ -9,8 +9,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   /* --- Translation dictionary --- */
   const translations = {
-    app_title: { FR: 'Viscobat v2.0 - Application de viscosité', EN: 'Viscobat v2.0 - Fluid Viscosity App' },
-    app_name: { FR: 'Viscobat v2.0 - Application de viscosité', EN: 'Viscobat v2.0 - Fluid Viscosity App' },
+    app_title: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
+    app_name: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
     tab_vi: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
     tab_temp: { FR: 'Viscosité vs Température', EN: 'Viscosity vs Temperature' },
     tab_mixture: { FR: 'Mélange', EN: 'Mixture' },
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn_solve: { FR: 'Résoudre', EN: 'Solve' },
     btn_add_component: { FR: 'Ajouter un constituant', EN: 'Add component' },
     btn_add_known: { FR: 'Ajouter un constituant connu', EN: 'Add known component' },
-    btn_refresh: { FR: 'Rafraîchir', EN: 'Refresh' },
+    btn_refresh: { FR: 'Reset', EN: 'Reset' },
     table_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
     table_visc: { FR: 'Viscosité (mm²/s)', EN: 'Viscosity (mm²/s)' },
     table_percent: { FR: '% masse', EN: '% mass' },
