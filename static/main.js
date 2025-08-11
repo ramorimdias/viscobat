@@ -301,22 +301,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // determine ranges
     let xMin = data[0].x;
     let xMax = data[0].x;
-    let yMin = data[0].y;
+    let yMin = 0;
     let yMax = data[0].y;
     data.forEach(pt => {
       if (pt.x < xMin) xMin = pt.x;
       if (pt.x > xMax) xMax = pt.x;
-      if (pt.y < yMin) yMin = pt.y;
       if (pt.y > yMax) yMax = pt.y;
     });
-    // add margins
     const yRange = yMax - yMin;
     const xRange = xMax - xMin;
     if (yRange === 0) {
-      yMin -= 1;
       yMax += 1;
     } else {
-      yMin -= yRange * 0.1;
       yMax += yRange * 0.1;
     }
     if (xRange === 0) {
@@ -326,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
       xMin -= xRange * 0.05;
       xMax += xRange * 0.05;
     }
-    const marginLeft = 70;
+    const marginLeft = 90;
     const marginBottom = 60;
     const marginTop = 20;
     const marginRight = 20;
@@ -372,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.moveTo(marginLeft - 5, yC);
       ctx.lineTo(marginLeft, yC);
       ctx.stroke();
-      ctx.fillText(tick.toFixed(1), marginLeft - 45, yC + 4);
+      ctx.fillText(tick.toFixed(1), marginLeft - 50, yC + 4);
       // horizontal grid line
       ctx.strokeStyle = '#e0e0e0';
       ctx.beginPath();
@@ -387,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.fillText(translations['axis_temp'][currentLang] || 'Temperature (°C)',
       marginLeft + plotWidth / 2, marginTop + plotHeight + 40);
     ctx.save();
-    ctx.translate(marginLeft - 60, marginTop + plotHeight / 2);
+    ctx.translate(marginLeft - 75, marginTop + plotHeight / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
