@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     solver_min: { FR: 'Minimiser', EN: 'Minimise' },
     solver_max: { FR: 'Maximiser', EN: 'Maximise' },
     solver_set: { FR: 'Fixer une valeur', EN: 'Set value' },
+    solver_mix_value: { FR: 'Viscosité (mm²/s)', EN: 'Viscosity (mm²/s)' },
     solver_min_value: { FR: 'Min', EN: 'Min' },
     solver_max_value: { FR: 'Max', EN: 'Max' },
     btn_solve: { FR: 'Résoudre', EN: 'Solve' },
