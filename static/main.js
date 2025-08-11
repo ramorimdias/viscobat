@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btn_refresh: { FR: 'Reset', EN: 'Reset' },
     table_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
     table_visc: { FR: 'Viscosité (mm²/s)', EN: 'Viscosity (mm²/s)' },
+    axis_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
+    axis_visc: { FR: 'Viscosité cinématique (mm²/s)', EN: 'Kinematic Viscosity (mm²/s)' },
     table_percent: { FR: '% massique', EN: '% mass' },
     label_target_mix: { FR: 'Viscosité du mélange cible (mm²/s)', EN: 'Target mixture viscosity (mm²/s)' },
     label_baseA: { FR: 'Viscosité du constituant A (mm²/s)', EN: 'Viscosity of component A (mm²/s)' },
@@ -151,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLang = languageSelect.value;
     setStored('vb_language', currentLang);
     translatePage();
+    drawChart(currentChartData);
   });
 
   translatePage();
@@ -323,8 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
       xMin -= xRange * 0.05;
       xMax += xRange * 0.05;
     }
-    const marginLeft = 50;
-    const marginBottom = 40;
+    const marginLeft = 70;
+    const marginBottom = 60;
     const marginTop = 20;
     const marginRight = 20;
     const plotWidth = width - marginLeft - marginRight;
@@ -378,6 +381,18 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.stroke();
       ctx.strokeStyle = '#444';
     });
+    // axis labels
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(translations['axis_temp'][currentLang] || 'Temperature (°C)',
+      marginLeft + plotWidth / 2, marginTop + plotHeight + 40);
+    ctx.save();
+    ctx.translate(marginLeft - 60, marginTop + plotHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(translations['axis_visc'][currentLang] || 'Kinematic Viscosity (mm²/s)', 0, 0);
+    ctx.restore();
     // draw the line
     ctx.strokeStyle = '#c62828';
     ctx.lineWidth = 2;
