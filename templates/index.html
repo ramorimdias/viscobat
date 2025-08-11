@@ -29,7 +29,7 @@
   </header>
   <nav class="tab-bar">
     <button class="tab-button active" data-tab="vi" data-i18n="tab_vi">Indice de viscosité</button>
-    <button class="tab-button" data-tab="temp" data-i18n="tab_temp">Viscosité vs Température</button>
+    <button class="tab-button" data-tab="temp" data-i18n="tab_temp">Viscosité cinématique vs Température</button>
     <button class="tab-button" data-tab="mixture" data-i18n="tab_mixture">Mélange</button>
     <button class="tab-button" data-tab="twoBases" data-i18n="tab_two_bases">Mélange 2 bases</button>
     <button class="tab-button" data-tab="solver" data-i18n="tab_solver">Solveur</button>
@@ -40,7 +40,7 @@
       <h2 data-i18n="vi_heading">Indice de viscosité</h2>
       <form id="viForm" class="form-grid">
         <div class="form-row">
-          <label for="vi-v1" data-i18n="label_v1">Viscosité 1 (mm²/s)</label>
+          <label for="vi-v1" data-i18n="label_v1">Viscosité cinématique 1 (mm²/s)</label>
           <input type="number" step="any" id="vi-v1" required>
         </div>
         <div class="form-row">
@@ -48,7 +48,7 @@
           <input type="number" step="any" id="vi-t1" value="40" required>
         </div>
         <div class="form-row">
-          <label for="vi-v2" data-i18n="label_v2">Viscosité 2 (mm²/s)</label>
+          <label for="vi-v2" data-i18n="label_v2">Viscosité cinématique 2 (mm²/s)</label>
           <input type="number" step="any" id="vi-v2" required>
         </div>
         <div class="form-row">
@@ -64,10 +64,10 @@
 
     <!-- Tab: Temperature vs Viscosity -->
     <section id="tab-temp" class="tab-content">
-      <h2 data-i18n="temp_heading">Viscosité en fonction de la température</h2>
+      <h2 data-i18n="temp_heading">Viscosité cinématique en fonction de la température</h2>
       <form id="tempForm" class="form-grid">
         <div class="form-row">
-          <label for="temp-v1" data-i18n="label_v1">Viscosité 1 (mm²/s)</label>
+          <label for="temp-v1" data-i18n="label_v1">Viscosité cinématique 1 (mm²/s)</label>
           <input type="number" step="any" id="temp-v1" required>
         </div>
         <div class="form-row">
@@ -75,7 +75,7 @@
           <input type="number" step="any" id="temp-t1" value="40" required>
         </div>
         <div class="form-row">
-          <label for="temp-v2" data-i18n="label_v2">Viscosité 2 (mm²/s)</label>
+          <label for="temp-v2" data-i18n="label_v2">Viscosité cinématique 2 (mm²/s)</label>
           <input type="number" step="any" id="temp-v2" required>
         </div>
         <div class="form-row">
@@ -96,7 +96,7 @@
           <thead>
             <tr>
               <th data-i18n="table_temp">Température (°C)</th>
-              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+              <th data-i18n="table_visc">Viscosité cinématique (mm²/s)</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -117,7 +117,7 @@
             <tr>
               <th>#</th>
               <th data-i18n="table_percent">% masse</th>
-              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+              <th data-i18n="table_visc">Viscosité cinématique (mm²/s)</th>
               <th></th>
             </tr>
           </thead>
@@ -137,15 +137,15 @@
       <h2 data-i18n="two_bases_heading">Mélange avec deux bases</h2>
       <form id="twoBasesForm" class="form-grid">
         <div class="form-row">
-          <label for="tb-target" data-i18n="label_target_mix">Viscosité du mélange cible (mm²/s)</label>
+          <label for="tb-target" data-i18n="label_target_mix">Viscosité cinématique du mélange cible (mm²/s)</label>
           <input type="number" step="any" id="tb-target" required>
         </div>
         <div class="form-row">
-          <label for="tb-baseA" data-i18n="label_baseA">Viscosité du constituant A (mm²/s)</label>
+          <label for="tb-baseA" data-i18n="label_baseA">Viscosité cinématique du constituant A (mm²/s)</label>
           <input type="number" step="any" id="tb-baseA" required>
         </div>
         <div class="form-row">
-          <label for="tb-baseB" data-i18n="label_baseB">Viscosité du constituant B (mm²/s)</label>
+          <label for="tb-baseB" data-i18n="label_baseB">Viscosité cinématique du constituant B (mm²/s)</label>
           <input type="number" step="any" id="tb-baseB" required>
         </div>
         <div class="form-row full-row">
@@ -156,7 +156,7 @@
             <tr>
               <th>#</th>
               <th data-i18n="table_percent">% masse</th>
-              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+              <th data-i18n="table_visc">Viscosité cinématique (mm²/s)</th>
               <th></th>
             </tr>
           </thead>
@@ -180,7 +180,7 @@
           <thead>
             <tr>
               <th>#</th>
-              <th data-i18n="table_visc">Viscosité (mm²/s)</th>
+              <th data-i18n="table_visc">Viscosité cinématique (mm²/s)</th>
               <th data-i18n="solver_type">Contrainte</th>
               <th data-i18n="solver_value">Valeur/Intervalle</th>
               <th></th>
@@ -189,7 +189,7 @@
           <tbody></tbody>
         </table>
         <div class="solver-mixture">
-          <h3 data-i18n="solver_mix">Contrainte sur la viscosité du mélange</h3>
+          <h3 data-i18n="solver_mix">Contrainte sur la viscosité cinématique du mélange</h3>
           <div class="form-row">
             <label for="mix-constraint" data-i18n="solver_mix_type">Type</label>
             <select id="mix-constraint">
@@ -201,7 +201,7 @@
             </select>
           </div>
           <div class="form-row" id="mix-value-row" style="display:none;">
-            <label for="mix-value" data-i18n="solver_mix_value">Viscosité (mm²/s)</label>
+            <label for="mix-value" data-i18n="solver_mix_value">Viscosité cinématique (mm²/s)</label>
             <input type="number" step="any" id="mix-value">
           </div>
           <div class="form-row" id="mix-range-row" style="display:none;">

@@ -12,17 +12,17 @@ document.addEventListener('DOMContentLoaded', () => {
     app_title: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
     app_name: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
     tab_vi: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
-    tab_temp: { FR: 'Viscosité vs Température', EN: 'Viscosity vs Temperature' },
+    tab_temp: { FR: 'Viscosité cinématique vs Température', EN: 'Kinematic Viscosity vs Temperature' },
     tab_mixture: { FR: 'Mélange', EN: 'Mixture' },
     tab_two_bases: { FR: 'Mélange 2 bases', EN: '2‑Base Mixer' },
     tab_solver: { FR: 'Solveur', EN: 'Solver' },
     vi_heading: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
-    temp_heading: { FR: 'Viscosité en fonction de la température', EN: 'Viscosity vs Temperature' },
+    temp_heading: { FR: 'Viscosité cinématique en fonction de la température', EN: 'Kinematic Viscosity vs Temperature' },
     mixture_heading: { FR: 'Mélange de plusieurs constituants', EN: 'Mixture of several components' },
     two_bases_heading: { FR: 'Mélange avec deux bases', EN: 'Mixture with two bases' },
     solver_heading: { FR: 'Solveur de formulation', EN: 'Formulation solver' },
-    label_v1: { FR: 'Viscosité 1 (mm²/s)', EN: 'Viscosity 1 (mm²/s)' },
-    label_v2: { FR: 'Viscosité 2 (mm²/s)', EN: 'Viscosity 2 (mm²/s)' },
+    label_v1: { FR: 'Viscosité cinématique 1 (mm²/s)', EN: 'Kinematic Viscosity 1 (mm²/s)' },
+    label_v2: { FR: 'Viscosité cinématique 2 (mm²/s)', EN: 'Kinematic Viscosity 2 (mm²/s)' },
     label_t1: { FR: 'Température 1 (°C)', EN: 'Temperature 1 (°C)' },
     label_t2: { FR: 'Température 2 (°C)', EN: 'Temperature 2 (°C)' },
     label_target_temp: { FR: 'Température voulue (°C)', EN: 'Target temperature (°C)' },
@@ -32,23 +32,23 @@ document.addEventListener('DOMContentLoaded', () => {
     btn_add_known: { FR: 'Ajouter un constituant connu', EN: 'Add known component' },
     btn_refresh: { FR: 'Reset', EN: 'Reset' },
     table_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
-    table_visc: { FR: 'Viscosité (mm²/s)', EN: 'Viscosity (mm²/s)' },
+    table_visc: { FR: 'Viscosité cinématique (mm²/s)', EN: 'Kinematic Viscosity (mm²/s)' },
     axis_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
     axis_visc: { FR: 'Viscosité cinématique (mm²/s)', EN: 'Kinematic Viscosity (mm²/s)' },
     table_percent: { FR: '% massique', EN: '% mass' },
-    label_target_mix: { FR: 'Viscosité du mélange cible (mm²/s)', EN: 'Target mixture viscosity (mm²/s)' },
-    label_baseA: { FR: 'Viscosité du constituant A (mm²/s)', EN: 'Viscosity of component A (mm²/s)' },
-    label_baseB: { FR: 'Viscosité du constituant B (mm²/s)', EN: 'Viscosity of component B (mm²/s)' },
+    label_target_mix: { FR: 'Viscosité cinématique du mélange cible (mm²/s)', EN: 'Target mixture kinematic viscosity (mm²/s)' },
+    label_baseA: { FR: 'Viscosité cinématique du constituant A (mm²/s)', EN: 'Kinematic viscosity of component A (mm²/s)' },
+    label_baseB: { FR: 'Viscosité cinématique du constituant B (mm²/s)', EN: 'Kinematic viscosity of component B (mm²/s)' },
     solver_type: { FR: 'Contrainte', EN: 'Constraint' },
     solver_value: { FR: '% massique', EN: '% mass' },
-    solver_mix: { FR: 'Contrainte sur la viscosité du mélange', EN: 'Mixture viscosity constraint' },
+    solver_mix: { FR: 'Contrainte sur la viscosité cinématique du mélange', EN: 'Mixture kinematic viscosity constraint' },
     solver_mix_type: { FR: 'Type', EN: 'Type' },
     solver_free: { FR: 'Libre', EN: 'Free' },
     solver_range: { FR: 'Intervalle', EN: 'Range' },
     solver_min: { FR: 'Minimiser', EN: 'Minimise' },
     solver_max: { FR: 'Maximiser', EN: 'Maximise' },
     solver_set: { FR: 'Fixer une valeur', EN: 'Set value' },
-    solver_mix_value: { FR: 'Viscosité (mm²/s)', EN: 'Viscosity (mm²/s)' },
+    solver_mix_value: { FR: 'Viscosité cinématique (mm²/s)', EN: 'Kinematic Viscosity (mm²/s)' },
     solver_min_value: { FR: 'Min', EN: 'Min' },
     solver_max_value: { FR: 'Max', EN: 'Max' },
     btn_solve: { FR: 'Résoudre', EN: 'Solve' },
@@ -211,9 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const vi = body.vi;
           viResultDiv.innerHTML = '';
           const p1 = document.createElement('p');
-          p1.innerHTML = `<strong>${translations['vi_result_v40'] ? translations['vi_result_v40'][currentLang] : 'V40'} </strong> ${v40.toFixed(3)}`;
+          p1.innerHTML = `<strong>${translations['vi_result_v40'] ? translations['vi_result_v40'][currentLang] : 'Kinematic Viscosity at 40°C:'} </strong> ${v40.toFixed(3)} mm²/s`;
           const p2 = document.createElement('p');
-          p2.innerHTML = `<strong>${translations['vi_result_v100'] ? translations['vi_result_v100'][currentLang] : 'V100'} </strong> ${v100.toFixed(3)}`;
+          p2.innerHTML = `<strong>${translations['vi_result_v100'] ? translations['vi_result_v100'][currentLang] : 'Kinematic Viscosity at 100°C:'} </strong> ${v100.toFixed(3)} mm²/s`;
           const p3 = document.createElement('p');
           p3.innerHTML = `<strong>${translations['vi_result_vi'] ? translations['vi_result_vi'][currentLang] : 'VI'} </strong> ${vi}`;
           viResultDiv.appendChild(p1);
@@ -227,8 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Provide translation keys for VI results
-  translations['vi_result_v40'] = { FR: 'Viscosité à 40 °C :', EN: 'Viscosity at 40°C:' };
-  translations['vi_result_v100'] = { FR: 'Viscosité à 100 °C :', EN: 'Viscosity at 100°C:' };
+  translations['vi_result_v40'] = { FR: 'Viscosité cinématique à 40 °C :', EN: 'Kinematic Viscosity at 40°C:' };
+  translations['vi_result_v100'] = { FR: 'Viscosité cinématique à 100 °C :', EN: 'Kinematic Viscosity at 100°C:' };
   translations['vi_result_vi'] = { FR: 'Indice de viscosité :', EN: 'Viscosity index:' };
 
   /* --- Temperature vs Viscosity form --- */
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           // update target result
           if (body.targetViscosity !== undefined) {
-            tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Viscosity at target:'}</strong> ${body.targetViscosity.toFixed(3)}`;
+            tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${body.targetViscosity.toFixed(3)} mm²/s`;
           }
           // update table
           tempTableBody.innerHTML = '';
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   });
 
-  translations['temp_result_at'] = { FR: 'Viscosité à la température voulue :', EN: 'Viscosity at target temperature:' };
+  translations['temp_result_at'] = { FR: 'Viscosité cinématique à la température voulue :', EN: 'Kinematic viscosity at target temperature:' };
 
   /**
    * Draw a simple line chart on the canvas using the provided data.
@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (status !== 200) {
           mixtureResultDiv.textContent = body.error || 'Erreur';
         } else {
-          mixtureResultDiv.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité du mélange :' : 'Mixture viscosity:'}</strong> ${body.viscosity.toFixed(3)}`;
+          mixtureResultDiv.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité cinématique du mélange :' : 'Mixture kinematic viscosity:'}</strong> ${body.viscosity.toFixed(3)} mm²/s`;
         }
       })
       .catch(err => {
@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
             solverResultDiv.appendChild(pEl);
           });
           const viscEl = document.createElement('p');
-          viscEl.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité du mélange résultante :' : 'Resulting mixture viscosity:'}</strong> ${body.viscosity.toFixed(3)}`;
+          viscEl.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité cinématique du mélange résultant :' : 'Resulting mixture kinematic viscosity:'}</strong> ${body.viscosity.toFixed(3)} mm²/s`;
           solverResultDiv.appendChild(viscEl);
         }
       })
