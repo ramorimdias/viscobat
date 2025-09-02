@@ -211,9 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const vi = body.vi;
           viResultDiv.innerHTML = '';
           const p1 = document.createElement('p');
-          p1.innerHTML = `<strong>${translations['vi_result_v40'] ? translations['vi_result_v40'][currentLang] : 'Kinematic Viscosity at 40°C:'} </strong> ${v40.toFixed(3)} mm²/s`;
+          p1.innerHTML = `<strong>${translations['vi_result_v40'] ? translations['vi_result_v40'][currentLang] : 'Kinematic Viscosity at 40°C:'} </strong> ${v40.toFixed(2)} mm²/s`;
           const p2 = document.createElement('p');
-          p2.innerHTML = `<strong>${translations['vi_result_v100'] ? translations['vi_result_v100'][currentLang] : 'Kinematic Viscosity at 100°C:'} </strong> ${v100.toFixed(3)} mm²/s`;
+          p2.innerHTML = `<strong>${translations['vi_result_v100'] ? translations['vi_result_v100'][currentLang] : 'Kinematic Viscosity at 100°C:'} </strong> ${v100.toFixed(2)} mm²/s`;
           const p3 = document.createElement('p');
           p3.innerHTML = `<strong>${translations['vi_result_vi'] ? translations['vi_result_vi'][currentLang] : 'VI'} </strong> ${vi}`;
           viResultDiv.appendChild(p1);
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           // update target result
           if (body.targetViscosity !== undefined) {
-            tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${body.targetViscosity.toFixed(3)} mm²/s`;
+            tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${body.targetViscosity.toFixed(2)} mm²/s`;
           }
           // update table
           tempTableBody.innerHTML = '';
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tdT = document.createElement('td');
             tdT.textContent = row.temperature;
             const tdV = document.createElement('td');
-            tdV.textContent = row.viscosity.toFixed(3);
+            tdV.textContent = row.viscosity.toFixed(2);
             tr.appendChild(tdT);
             tr.appendChild(tdV);
             tempTableBody.appendChild(tr);
@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.moveTo(marginLeft - 5, yC);
       ctx.lineTo(marginLeft, yC);
       ctx.stroke();
-      ctx.fillText(tick.toFixed(1), marginLeft - 50, yC + 4);
+      ctx.fillText(tick.toFixed(2), marginLeft - 50, yC + 4);
       // horizontal grid line
       ctx.strokeStyle = '#e0e0e0';
       ctx.beginPath();
@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (status !== 200) {
           mixtureResultDiv.textContent = body.error || 'Erreur';
         } else {
-          mixtureResultDiv.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité cinématique du mélange :' : 'Mixture kinematic viscosity:'}</strong> ${body.viscosity.toFixed(3)} mm²/s`;
+          mixtureResultDiv.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité cinématique du mélange :' : 'Mixture kinematic viscosity:'}</strong> ${body.viscosity.toFixed(2)} mm²/s`;
         }
       })
       .catch(err => {
@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
             solverResultDiv.appendChild(pEl);
           });
           const viscEl = document.createElement('p');
-          viscEl.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité cinématique du mélange résultant :' : 'Resulting mixture kinematic viscosity:'}</strong> ${body.viscosity.toFixed(3)} mm²/s`;
+          viscEl.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité cinématique du mélange résultant :' : 'Resulting mixture kinematic viscosity:'}</strong> ${body.viscosity.toFixed(2)} mm²/s`;
           solverResultDiv.appendChild(viscEl);
         }
       })
