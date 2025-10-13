@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (value === null || value === undefined) {
       return '';
     }
-    return String(value).trim().replace(/\s+/g, '').replace(/,/g, '.');
+    return String(value).trim().replace(/\s+/g, '');
   }
 
   function parseNumberValue(value) {
@@ -145,6 +145,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const handler = () => sanitizeNumberInputValue(input);
     handler();
     ['input', 'change'].forEach(evt => input.addEventListener(evt, handler));
+    input.addEventListener('keydown', evt => {
+      if (evt.key === ',') {
+        evt.preventDefault();
+      }
+    });
   }
 
   // --- Persistence helpers using localStorage ---
