@@ -7,6 +7,10 @@ body {
   color: #222;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 /* Header */
 .app-header {
   display: flex;
@@ -41,6 +45,20 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.motul-logo-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.motul-logo-btn:focus-visible {
+  outline: 2px solid #c62828;
+  outline-offset: 2px;
 }
 
 .motul-logo {
@@ -143,6 +161,48 @@ th {
 
 .table-wrapper {
   overflow-x: auto;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 2000;
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-content {
+  background: #fff;
+  max-width: 420px;
+  width: 100%;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  position: relative;
+  text-align: left;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.modal-close:hover,
+.modal-close:focus-visible {
+  color: #c62828;
 }
 
 /* Buttons */
