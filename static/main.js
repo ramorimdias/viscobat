@@ -59,6 +59,60 @@ document.addEventListener('DOMContentLoaded', () => {
     solver_set: { FR: 'Fixer une valeur', EN: 'Set value' }
   };
 
+  function normalizeDecimalString(value) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value).trim().replace(/\s+/g, '').replace(/,/g, '.');
+  }
+
+  function parseNumberValue(value) {
+    const normalized = normalizeDecimalString(value);
+    if (normalized === '') {
+      return Number.NaN;
+    }
+    return Number.parseFloat(normalized);
+  }
+
+  function sanitizeNumberInputValue(input) {
+    if (!input) {
+      return;
+    }
+    const previous = input.value;
+    const normalized = normalizeDecimalString(previous);
+    if (previous !== normalized) {
+      let start = null;
+      let end = null;
+      try {
+        start = input.selectionStart;
+        end = input.selectionEnd;
+      } catch (e) {
+        start = null;
+        end = null;
+      }
+      input.value = normalized;
+      if (typeof start === 'number' && typeof end === 'number') {
+        const adjustment = previous.length - normalized.length;
+        const newStart = Math.max(start - (adjustment > 0 ? adjustment : 0), 0);
+        const newEnd = Math.max(end - (adjustment > 0 ? adjustment : 0), 0);
+        try {
+          input.setSelectionRange(newStart, newEnd);
+        } catch (e) {
+          /* ignore selection errors on number inputs */
+        }
+      }
+    }
+  }
+
+  function registerNumberSanitizer(input) {
+    if (!input) {
+      return;
+    }
+    const handler = () => sanitizeNumberInputValue(input);
+    handler();
+    ['input', 'change'].forEach(evt => input.addEventListener(evt, handler));
+  }
+
   // --- Persistence helpers using localStorage ---
   function setStored(name, value) {
     try {
@@ -158,8 +212,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   translatePage();
 
+  document.querySelectorAll('input[type="number"]').forEach(registerNumberSanitizer);
+
   // Restore saved form values and persist changes
   document.querySelectorAll('input, select').forEach(registerPersistent);
+
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    sanitizeNumberInputValue(input);
+    if (input.id) {
+      setStored('vb_' + input.id, input.value);
+    }
+  });
 
   document.getElementById('reset-btn').addEventListener('click', () => {
     const savedLang = getStored('vb_language') || currentLang;
@@ -192,10 +255,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const viResultDiv = document.getElementById('vi-result');
   viForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const v1 = parseFloat(document.getElementById('vi-v1').value);
-    const t1 = parseFloat(document.getElementById('vi-t1').value);
-    const v2 = parseFloat(document.getElementById('vi-v2').value);
-    const t2 = parseFloat(document.getElementById('vi-t2').value);
+    const v1 = parseNumberValue(document.getElementById('vi-v1').value);
+    const t1 = parseNumberValue(document.getElementById('vi-t1').value);
+    const v2 = parseNumberValue(document.getElementById('vi-v2').value);
+    const t2 = parseNumberValue(document.getElementById('vi-t2').value);
     fetch('/api/vi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -241,11 +304,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tempForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const v1 = parseFloat(document.getElementById('temp-v1').value);
-    const t1 = parseFloat(document.getElementById('temp-t1').value);
-    const v2 = parseFloat(document.getElementById('temp-v2').value);
-    const t2 = parseFloat(document.getElementById('temp-t2').value);
-    const target = parseFloat(document.getElementById('temp-target').value);
+    const v1 = parseNumberValue(document.getElementById('temp-v1').value);
+    const t1 = parseNumberValue(document.getElementById('temp-t1').value);
+    const v2 = parseNumberValue(document.getElementById('temp-v2').value);
+    const t2 = parseNumberValue(document.getElementById('temp-t2').value);
+    const target = parseNumberValue(document.getElementById('temp-target').value);
     fetch('/api/viscosity_temperature', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -487,8 +550,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tdRemove.appendChild(removeBtn);
     tr.appendChild(tdRemove);
     mixtureTableBody.appendChild(tr);
+    registerNumberSanitizer(inputPercent);
+    registerNumberSanitizer(inputVisc);
     registerPersistent(inputPercent);
     registerPersistent(inputVisc);
+    sanitizeNumberInputValue(inputPercent);
+    sanitizeNumberInputValue(inputVisc);
+    if (inputPercent.id) setStored('vb_' + inputPercent.id, inputPercent.value);
+    if (inputVisc.id) setStored('vb_' + inputVisc.id, inputVisc.value);
     setStored(mixRowCountKey, mixtureTableBody.children.length);
   }
 
@@ -507,6 +576,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const viscInput = tr.children[2].children[0];
       percentInput.id = `mix-percent-${index}`;
       viscInput.id = `mix-visc-${index}`;
+      sanitizeNumberInputValue(percentInput);
+      sanitizeNumberInputValue(viscInput);
       setStored('vb_' + percentInput.id, percentInput.value);
       setStored('vb_' + viscInput.id, viscInput.value);
     });
@@ -525,8 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalPercent = 0;
     let valid = true;
     Array.from(mixtureTableBody.children).forEach(tr => {
-      const percent = parseFloat(tr.children[1].children[0].value);
-      const visc = parseFloat(tr.children[2].children[0].value);
+      const percent = parseNumberValue(tr.children[1].children[0].value);
+      const visc = parseNumberValue(tr.children[2].children[0].value);
       if (!isNaN(percent) && !isNaN(visc) && percent > 0) {
         comps.push({ percent, viscosity: visc });
         totalPercent += percent;
@@ -601,8 +672,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tdRemove.appendChild(removeBtn);
     tr.appendChild(tdRemove);
     knownTableBody.appendChild(tr);
+    registerNumberSanitizer(inputPercent);
+    registerNumberSanitizer(inputVisc);
     registerPersistent(inputPercent);
     registerPersistent(inputVisc);
+    sanitizeNumberInputValue(inputPercent);
+    sanitizeNumberInputValue(inputVisc);
+    if (inputPercent.id) setStored('vb_' + inputPercent.id, inputPercent.value);
+    if (inputVisc.id) setStored('vb_' + inputVisc.id, inputVisc.value);
     setStored(tbKnownCountKey, knownTableBody.children.length);
   }
 
@@ -621,6 +698,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const viscInput = tr.children[2].children[0];
       percentInput.id = `tb-known-percent-${index}`;
       viscInput.id = `tb-known-visc-${index}`;
+      sanitizeNumberInputValue(percentInput);
+      sanitizeNumberInputValue(viscInput);
       setStored('vb_' + percentInput.id, percentInput.value);
       setStored('vb_' + viscInput.id, viscInput.value);
     });
@@ -635,13 +714,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   twoBasesForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const target = parseFloat(document.getElementById('tb-target').value);
-    const baseA = parseFloat(document.getElementById('tb-baseA').value);
-    const baseB = parseFloat(document.getElementById('tb-baseB').value);
+    const target = parseNumberValue(document.getElementById('tb-target').value);
+    const baseA = parseNumberValue(document.getElementById('tb-baseA').value);
+    const baseB = parseNumberValue(document.getElementById('tb-baseB').value);
     const knownComponents = [];
     Array.from(knownTableBody.children).forEach(tr => {
-      const percent = parseFloat(tr.children[1].children[0].value);
-      const visc = parseFloat(tr.children[2].children[0].value);
+      const percent = parseNumberValue(tr.children[1].children[0].value);
+      const visc = parseNumberValue(tr.children[2].children[0].value);
       if (!isNaN(percent) && !isNaN(visc) && percent > 0) {
         knownComponents.push({ percent, viscosity: visc });
       }
@@ -770,7 +849,12 @@ document.addEventListener('DOMContentLoaded', () => {
     tdRemove.appendChild(removeBtn);
     tr.appendChild(tdRemove);
     solverTableBody.appendChild(tr);
+    [inputVisc, valueInput, rangeMinInput, rangeMaxInput].forEach(registerNumberSanitizer);
     [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
+    [inputVisc, valueInput, rangeMinInput, rangeMaxInput].forEach(input => {
+      sanitizeNumberInputValue(input);
+      if (input.id) setStored('vb_' + input.id, input.value);
+    });
     setStored(solverRowCountKey, solverTableBody.children.length);
     // update visibility according to type
     function updateVisibility() {
@@ -820,6 +904,10 @@ document.addEventListener('DOMContentLoaded', () => {
       rangeMinInput.id = `solver-min-${rowIndex}`;
       rangeMaxInput.id = `solver-max-${rowIndex}`;
       [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
+      [inputVisc, valueInput, rangeMinInput, rangeMaxInput].forEach(input => {
+        sanitizeNumberInputValue(input);
+        if (input.id) setStored('vb_' + input.id, input.value);
+      });
     });
     setStored(solverRowCountKey, solverTableBody.children.length);
   }
@@ -850,17 +938,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const comps = [];
     let hasObjective = false;
     Array.from(solverTableBody.children).forEach(tr => {
-      const visc = parseFloat(tr.children[1].children[0].value);
+      const visc = parseNumberValue(tr.children[1].children[0].value);
       const type = tr.children[2].children[0].value;
       const obj = {};
       obj.viscosity = visc;
       obj.type = type;
       if (type === 'setValue') {
-        const val = parseFloat(tr.children[3].children[0].value);
+        const val = parseNumberValue(tr.children[3].children[0].value);
         obj.value = val;
       } else if (type === 'range') {
-        const minv = parseFloat(tr.children[3].children[2].value);
-        const maxv = parseFloat(tr.children[3].children[4].value);
+        const minv = parseNumberValue(tr.children[3].children[2].value);
+        const maxv = parseNumberValue(tr.children[3].children[4].value);
         obj.min = minv;
         obj.max = maxv;
       }
@@ -870,10 +958,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mixType = mixConstraintSelect.value;
     const mixObj = { type: mixType };
     if (mixType === 'setValue') {
-      mixObj.value = parseFloat(document.getElementById('mix-value').value);
+      mixObj.value = parseNumberValue(document.getElementById('mix-value').value);
     } else if (mixType === 'range') {
-      mixObj.min = parseFloat(document.getElementById('mix-min').value);
-      mixObj.max = parseFloat(document.getElementById('mix-max').value);
+      mixObj.min = parseNumberValue(document.getElementById('mix-min').value);
+      mixObj.max = parseNumberValue(document.getElementById('mix-max').value);
     }
     fetch('/api/solver', {
       method: 'POST',
