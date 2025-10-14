@@ -56,19 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     solver_range: { FR: 'Intervalle', EN: 'Range' },
     solver_min: { FR: 'Minimiser', EN: 'Minimise' },
     solver_max: { FR: 'Maximiser', EN: 'Maximise' },
-    solver_set: { FR: 'Fixer une valeur', EN: 'Set value' },
-    motul_modal_title: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
-    motul_last_update_label: { FR: 'Dernière mise à jour :', EN: 'Last updated:' },
-    motul_last_update_value: { FR: '13/10/2025', EN: 'October 13, 2025' },
-    motul_version_label: { FR: 'Version :', EN: 'Version:' },
-    motul_author_label: { FR: 'Créé par :', EN: 'Created by:' },
-    motul_description: {
-      FR:
-        'La corrélation logarithmique de Walter est le cœur de cet outil, permettant d’établir avec précision le lien entre viscosité et température pour accompagner vos formulations.',
-      EN:
-        'Walter’s logarithmic correlation is the heart of this tool, accurately linking viscosity and temperature to support your formulations.'
-    },
-    modal_close_label: { FR: 'Fermer', EN: 'Close' }
+    solver_set: { FR: 'Fixer une valeur', EN: 'Set value' }
   };
 
   function normalizeDecimalString(value) {
@@ -91,16 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const previous = input.value;
-    let normalized = normalizeDecimalString(previous);
-    let zeroInsertedAt = null;
-
-    const leadingDecimalMatch = normalized.match(/^([+-]?)\.(.*)$/);
-    if (leadingDecimalMatch) {
-      const sign = leadingDecimalMatch[1];
-      const rest = leadingDecimalMatch[2];
-      normalized = `${sign}0.${rest}`;
-      zeroInsertedAt = sign.length;
-    }
+    const normalized = normalizeDecimalString(previous);
     if (previous !== normalized) {
       let start = null;
       let end = null;
@@ -113,22 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       input.value = normalized;
       if (typeof start === 'number' && typeof end === 'number') {
-        let newStart = start;
-        let newEnd = end;
-        const lengthDiff = normalized.length - previous.length;
-        if (lengthDiff < 0) {
-          const adjustment = Math.abs(lengthDiff);
-          newStart = Math.max(start - adjustment, 0);
-          newEnd = Math.max(end - adjustment, 0);
-        }
-        if (zeroInsertedAt !== null) {
-          if (start > zeroInsertedAt) {
-            newStart += 1;
-          }
-          if (end > zeroInsertedAt) {
-            newEnd += 1;
-          }
-        }
+        const adjustment = previous.length - normalized.length;
+        const newStart = Math.max(start - (adjustment > 0 ? adjustment : 0), 0);
+        const newEnd = Math.max(end - (adjustment > 0 ? adjustment : 0), 0);
         try {
           input.setSelectionRange(newStart, newEnd);
         } catch (e) {
@@ -240,18 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
-    document.querySelectorAll('[data-i18n-attr]').forEach(el => {
-      const mappings = el.getAttribute('data-i18n-attr');
-      if (!mappings) return;
-      mappings.split(',').forEach(mapping => {
-        const [attr, key] = mapping.split(':').map(part => part && part.trim());
-        if (!attr || !key) return;
-        const trans = translations[key];
-        if (trans && trans[currentLang]) {
-          el.setAttribute(attr, trans[currentLang]);
-        }
-      });
-    });
   }
 
   languageSelect.addEventListener('change', () => {
@@ -263,45 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   translatePage();
 
-  function registerDecimalCommaSupport(input) {
-    if (!input || input.dataset.decimalCommaRegistered) {
-      return;
-    }
-    input.addEventListener('keydown', event => {
-      if (event.key !== ',' && event.key !== 'Decimal' && event.key !== 'Separator') {
-        return;
-      }
-      event.preventDefault();
-      const value = input.value || '';
-      let start = value.length;
-      let end = value.length;
-      try {
-        if (typeof input.selectionStart === 'number') {
-          start = input.selectionStart;
-        }
-        if (typeof input.selectionEnd === 'number') {
-          end = input.selectionEnd;
-        }
-      } catch (e) {
-        start = value.length;
-        end = value.length;
-      }
-      const newValue = value.slice(0, start) + '.' + value.slice(end);
-      input.value = newValue;
-      try {
-        input.setSelectionRange(start + 1, start + 1);
-      } catch (e) {
-        /* ignore selection errors */
-      }
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    input.dataset.decimalCommaRegistered = 'true';
-  }
-
-  document.querySelectorAll('input[type="number"]').forEach(input => {
-    registerNumberSanitizer(input);
-    registerDecimalCommaSupport(input);
-  });
+  document.querySelectorAll('input[type="number"]').forEach(registerNumberSanitizer);
 
   // Restore saved form values and persist changes
   document.querySelectorAll('input, select').forEach(registerPersistent);
