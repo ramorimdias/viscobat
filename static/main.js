@@ -905,47 +905,4 @@ document.addEventListener('DOMContentLoaded', () => {
         solverResultDiv.textContent = err.toString();
       });
   });
-
-  const motulInfoBtn = document.getElementById('motul-info-btn');
-  const motulModal = document.getElementById('motul-modal');
-  const motulCloseBtn = motulModal ? motulModal.querySelector('.modal-close') : null;
-
-  const openMotulModal = () => {
-    if (!motulModal) return;
-    motulModal.classList.add('open');
-    motulModal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
-    if (motulCloseBtn) {
-      motulCloseBtn.focus();
-    }
-  };
-
-  const closeMotulModal = () => {
-    if (!motulModal) return;
-    motulModal.classList.remove('open');
-    motulModal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('modal-open');
-    if (motulInfoBtn) {
-      motulInfoBtn.focus();
-    }
-  };
-
-  if (motulInfoBtn && motulModal) {
-    motulInfoBtn.addEventListener('click', openMotulModal);
-  }
-  if (motulCloseBtn) {
-    motulCloseBtn.addEventListener('click', closeMotulModal);
-  }
-  if (motulModal) {
-    motulModal.addEventListener('click', (event) => {
-      if (event.target === motulModal) {
-        closeMotulModal();
-      }
-    });
-  }
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && motulModal && motulModal.classList.contains('open')) {
-      closeMotulModal();
-    }
-  });
 });
