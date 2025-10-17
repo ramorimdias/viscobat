@@ -56,7 +56,19 @@ document.addEventListener('DOMContentLoaded', () => {
     solver_range: { FR: 'Intervalle', EN: 'Range' },
     solver_min: { FR: 'Minimiser', EN: 'Minimise' },
     solver_max: { FR: 'Maximiser', EN: 'Maximise' },
-    solver_set: { FR: 'Fixer une valeur', EN: 'Set value' }
+    solver_set: { FR: 'Fixer une valeur', EN: 'Set value' },
+    modal_title: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
+    modal_last_update_label: { FR: 'Dernière mise à jour :', EN: 'Last update:' },
+    modal_last_update_value: { FR: '15 septembre 2025', EN: '15 September 2025' },
+    modal_version_label: { FR: 'Version :', EN: 'Version:' },
+    modal_version_value: { FR: '1.3', EN: '1.3' },
+    modal_author_label: { FR: 'Créé par :', EN: 'Created by:' },
+    modal_author_value: { FR: 'Rodrigo AMORIM DIAS', EN: 'Rodrigo AMORIM DIAS' },
+    modal_description: {
+      FR: 'La corrélation logarithmique de Walter est le cœur de cet outil, permettant d’établir avec précision le lien entre viscosité et température pour accompagner vos formulations.',
+      EN: 'The Walter log correlation is the heart of this tool, enabling a precise link between viscosity and temperature to support your formulations.'
+    },
+    modal_close_label: { FR: 'Fermer', EN: 'Close' }
   };
 
   // --- Persistence helpers using localStorage ---
@@ -140,7 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const key = el.getAttribute('data-i18n');
       const trans = translations[key];
       if (trans && trans[currentLang]) {
-        if (el.tagName.toLowerCase() === 'title') {
+        if (el.dataset.i18nAttr) {
+          el.setAttribute(el.dataset.i18nAttr, trans[currentLang]);
+        } else if (el.tagName.toLowerCase() === 'title') {
           document.title = trans[currentLang];
         } else {
           el.textContent = trans[currentLang];
@@ -904,5 +918,48 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(err => {
         solverResultDiv.textContent = err.toString();
       });
+  });
+
+  const motulInfoBtn = document.getElementById('motul-info-btn');
+  const motulModal = document.getElementById('motul-modal');
+  const motulCloseBtn = motulModal ? motulModal.querySelector('.modal-close') : null;
+
+  const openMotulModal = () => {
+    if (!motulModal) return;
+    motulModal.classList.add('open');
+    motulModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    if (motulCloseBtn) {
+      motulCloseBtn.focus();
+    }
+  };
+
+  const closeMotulModal = () => {
+    if (!motulModal) return;
+    motulModal.classList.remove('open');
+    motulModal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    if (motulInfoBtn) {
+      motulInfoBtn.focus();
+    }
+  };
+
+  if (motulInfoBtn && motulModal) {
+    motulInfoBtn.addEventListener('click', openMotulModal);
+  }
+  if (motulCloseBtn) {
+    motulCloseBtn.addEventListener('click', closeMotulModal);
+  }
+  if (motulModal) {
+    motulModal.addEventListener('click', (event) => {
+      if (event.target === motulModal) {
+        closeMotulModal();
+      }
+    });
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && motulModal && motulModal.classList.contains('open')) {
+      closeMotulModal();
+    }
   });
 });
