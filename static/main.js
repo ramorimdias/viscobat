@@ -810,6 +810,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     updateVisibility();
+    // persistence may restore the select value asynchronously; ensure
+    // visibility matches any stored value once registration is complete.
+    setTimeout(updateVisibility, 0);
     selectType.addEventListener('change', () => {
       updateVisibility();
     });
