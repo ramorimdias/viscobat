@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn_refresh: { FR: 'Reset', EN: 'Reset' },
     table_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
     table_visc: { FR: 'Viscosité cinématique (mm²/s)', EN: 'Kinematic Viscosity (mm²/s)' },
+    table_id: { FR: 'ID', EN: 'ID' },
     axis_temp: { FR: 'Température (°C)', EN: 'Temperature (°C)' },
     axis_visc: { FR: 'Viscosité cinématique (mm²/s)', EN: 'Kinematic Viscosity (mm²/s)' },
     table_percent: { FR: '% massique', EN: '% mass' },
@@ -57,6 +58,18 @@ document.addEventListener('DOMContentLoaded', () => {
     solver_min: { FR: 'Minimiser', EN: 'Minimise' },
     solver_max: { FR: 'Maximiser', EN: 'Maximise' },
     solver_set: { FR: 'Fixer une valeur', EN: 'Set value' },
+    solver_diag_unique: {
+      FR: 'Solution unique trouvée avec ces contraintes.',
+      EN: 'The constraints lead to a unique solution.'
+    },
+    solver_diag_multiple: {
+      FR: 'Plusieurs solutions satisfont ces contraintes. Ajoutez un objectif ou des bornes pour obtenir une réponse unique.',
+      EN: 'Multiple solutions satisfy these constraints. Add an objective or bounds to obtain a unique answer.'
+    },
+    solver_summary_title: { FR: 'Résumé des contraintes', EN: 'Constraints summary' },
+    solver_summary_mixture: { FR: 'Mélange', EN: 'Mixture' },
+    solver_result_title: { FR: 'Résultats', EN: 'Results' },
+    solver_possible_range: { FR: 'Plage faisable', EN: 'Feasible range' },
     modal_title: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
     modal_last_update_label: { FR: 'Dernière mise à jour :', EN: 'Last update:' },
     modal_last_update_value: { FR: '15 septembre 2025', EN: '15 September 2025' },
@@ -696,12 +709,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const mixRangeRow = document.getElementById('mix-range-row');
   const solverRowCountKey = 'vb_solver_row_count';
 
-  function addSolverRow(viscosity = '', type = 'free', value = '', min = '', max = '') {
+  function addSolverRow(viscosity = '', type = 'free', value = '', min = '', max = '', nameValue = '') {
     const rowIndex = solverTableBody.children.length + 1;
     const tr = document.createElement('tr');
     // index
     const tdIndex = document.createElement('td');
-    tdIndex.textContent = rowIndex;
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'solver-name-input';
+    const defaultName = `ID ${rowIndex}`;
+    nameInput.value = nameValue || defaultName;
+    nameInput.placeholder = defaultName;
+    nameInput.id = `solver-name-${rowIndex}`;
+    tdIndex.appendChild(nameInput);
     tr.appendChild(tdIndex);
     // viscosity
     const tdVisc = document.createElement('td');
@@ -775,7 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
     removeBtn.textContent = '×';
     removeBtn.className = 'secondary-btn';
     removeBtn.addEventListener('click', () => {
-      [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(el => {
+      [nameInput, inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(el => {
         if (el.id) removeStored('vb_' + el.id);
       });
       solverTableBody.removeChild(tr);
@@ -784,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tdRemove.appendChild(removeBtn);
     tr.appendChild(tdRemove);
     solverTableBody.appendChild(tr);
-    [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
+    [nameInput, inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
     setStored(solverRowCountKey, solverTableBody.children.length);
     // update visibility according to type
     function updateVisibility() {
@@ -820,23 +840,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateSolverIndices() {
     Array.from(solverTableBody.children).forEach((tr, idx) => {
-      tr.children[0].textContent = idx + 1;
       const rowIndex = idx + 1;
+      const nameInput = tr.children[0].querySelector('input');
       const inputVisc = tr.children[1].querySelector('input');
       const selectType = tr.children[2].querySelector('select');
       const inputs = tr.children[3].querySelectorAll('input');
       const valueInput = inputs[0];
       const rangeMinInput = inputs[1];
       const rangeMaxInput = inputs[2];
-      [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(el => {
-        if (el.id) removeStored('vb_' + el.id);
+      [nameInput, inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(el => {
+        if (el && el.id) removeStored('vb_' + el.id);
       });
+      if (nameInput) {
+        const defaultName = `ID ${rowIndex}`;
+        if (!nameInput.value.trim()) {
+          nameInput.value = defaultName;
+        }
+        nameInput.placeholder = defaultName;
+        nameInput.id = `solver-name-${rowIndex}`;
+      }
       inputVisc.id = `solver-visc-${rowIndex}`;
       selectType.id = `solver-type-${rowIndex}`;
       valueInput.id = `solver-value-${rowIndex}`;
       rangeMinInput.id = `solver-min-${rowIndex}`;
       rangeMaxInput.id = `solver-max-${rowIndex}`;
-      [inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(registerPersistent);
+      [nameInput, inputVisc, selectType, valueInput, rangeMinInput, rangeMaxInput].forEach(el => {
+        if (el) registerPersistent(el);
+      });
     });
     setStored(solverRowCountKey, solverTableBody.children.length);
   }
@@ -865,32 +895,75 @@ document.addEventListener('DOMContentLoaded', () => {
   solverForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const comps = [];
-    let hasObjective = false;
-    Array.from(solverTableBody.children).forEach(tr => {
+    const componentDetails = [];
+    Array.from(solverTableBody.children).forEach((tr, idx) => {
+      const nameInput = tr.children[0].querySelector('input');
+      const rawName = nameInput ? nameInput.value : '';
+      const name = rawName && rawName.trim() ? rawName.trim() : `ID ${idx + 1}`;
       const visc = parseFloat(tr.children[1].children[0].value);
       const type = tr.children[2].children[0].value;
       const obj = {};
       obj.viscosity = visc;
       obj.type = type;
+      let storedValue = null;
+      let storedMin = null;
+      let storedMax = null;
       if (type === 'setValue') {
         const val = parseFloat(tr.children[3].children[0].value);
-        obj.value = val;
+        if (!Number.isNaN(val)) {
+          obj.value = val;
+          storedValue = val;
+        }
       } else if (type === 'range') {
         const minv = parseFloat(tr.children[3].children[2].value);
         const maxv = parseFloat(tr.children[3].children[4].value);
-        obj.min = minv;
-        obj.max = maxv;
+        if (!Number.isNaN(minv)) {
+          obj.min = minv;
+          storedMin = minv;
+        }
+        if (!Number.isNaN(maxv)) {
+          obj.max = maxv;
+          storedMax = maxv;
+        }
       }
       comps.push(obj);
+      componentDetails.push({
+        index: idx,
+        name,
+        viscosity: visc,
+        type,
+        value: storedValue,
+        min: storedMin,
+        max: storedMax
+      });
     });
     // mixture constraints
     const mixType = mixConstraintSelect.value;
     const mixObj = { type: mixType };
+    const mixDetails = { type: mixType };
     if (mixType === 'setValue') {
-      mixObj.value = parseFloat(document.getElementById('mix-value').value);
+      const val = parseFloat(document.getElementById('mix-value').value);
+      if (!Number.isNaN(val)) {
+        mixObj.value = val;
+        mixDetails.value = val;
+      } else {
+        mixDetails.value = null;
+      }
     } else if (mixType === 'range') {
-      mixObj.min = parseFloat(document.getElementById('mix-min').value);
-      mixObj.max = parseFloat(document.getElementById('mix-max').value);
+      const minv = parseFloat(document.getElementById('mix-min').value);
+      const maxv = parseFloat(document.getElementById('mix-max').value);
+      if (!Number.isNaN(minv)) {
+        mixObj.min = minv;
+        mixDetails.min = minv;
+      } else {
+        mixDetails.min = null;
+      }
+      if (!Number.isNaN(maxv)) {
+        mixObj.max = maxv;
+        mixDetails.max = maxv;
+      } else {
+        mixDetails.max = null;
+      }
     }
     fetch('/api/solver', {
       method: 'POST',
@@ -904,17 +977,134 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           // show result
           solverResultDiv.innerHTML = '';
-          // list fractions
-          const fractions = body.fractions;
-          Object.keys(fractions).forEach(idx => {
-            const p = fractions[idx];
-            const pEl = document.createElement('p');
-            const label = currentLang === 'FR' ? `Pourcentage du constituant ${parseInt(idx) + 1} :` : `Percentage of component ${parseInt(idx) + 1}:`;
-            pEl.innerHTML = `<strong>${label}</strong> ${p.toFixed(2)} %`;
-            solverResultDiv.appendChild(pEl);
+          const fractions = body.fractions || {};
+          const diagnostics = body.diagnostics || {};
+          const diagRanges = diagnostics.variableRanges || {};
+          const tolerance = typeof diagnostics.tolerancePercent === 'number' ? diagnostics.tolerancePercent : 0;
+          const rangeThreshold = Math.max(tolerance * 2, 1e-4);
+          const localeNow = currentLang === 'FR' ? 'fr-FR' : 'en-US';
+          const text = (fr, en) => (currentLang === 'FR' ? fr : en);
+          const formatPercentFixed = (value, digits = 2) => {
+            const num = typeof value === 'number' ? value : parseFloat(value);
+            if (!Number.isFinite(num)) return '—';
+            return `${num.toLocaleString(localeNow, {
+              minimumFractionDigits: digits,
+              maximumFractionDigits: digits
+            })} %`;
+          };
+          const formatPercentFlexible = (value, maxDigits = 3) => {
+            const num = typeof value === 'number' ? value : parseFloat(value);
+            if (!Number.isFinite(num)) return '—';
+            return `${num.toLocaleString(localeNow, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: maxDigits
+            })} %`;
+          };
+          const formatViscosity = (value) => {
+            const num = typeof value === 'number' ? value : parseFloat(value);
+            if (!Number.isFinite(num)) return '—';
+            return `${num.toLocaleString(localeNow, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 3
+            })} mm²/s`;
+          };
+
+          if (diagnostics.status) {
+            const diagKey = diagnostics.status === 'unique' ? 'solver_diag_unique' : 'solver_diag_multiple';
+            const diagParagraph = document.createElement('p');
+            diagParagraph.className = 'solver-diagnostic';
+            diagParagraph.textContent = translations[diagKey] && translations[diagKey][currentLang]
+              ? translations[diagKey][currentLang]
+              : (diagnostics.status === 'unique' ? 'Unique solution found.' : 'Multiple feasible solutions detected.');
+            solverResultDiv.appendChild(diagParagraph);
+          }
+
+          const summaryContainer = document.createElement('div');
+          summaryContainer.className = 'solver-summary';
+          const summaryTitle = document.createElement('h4');
+          summaryTitle.textContent = translations['solver_summary_title'][currentLang] || 'Constraints summary';
+          summaryContainer.appendChild(summaryTitle);
+          const compList = document.createElement('ul');
+
+          componentDetails.forEach(detail => {
+            const constraintType = (detail.type === 'objectiveMin' || detail.type === 'objectiveMax') ? 'free' : detail.type;
+            let constraintText;
+            if (constraintType === 'setValue') {
+              const valueText = formatPercentFlexible(detail.value, 3);
+              constraintText = text(`Fixé à ${valueText}`, `Fixed at ${valueText}`);
+            } else if (constraintType === 'range') {
+              const minText = formatPercentFlexible(detail.min, 3);
+              const maxText = formatPercentFlexible(detail.max, 3);
+              constraintText = text(`Entre ${minText} et ${maxText}`, `Between ${minText} and ${maxText}`);
+            } else {
+              constraintText = text('Libre (0 à 100 %)', 'Free (0 to 100%)');
+            }
+            let objectiveText = '';
+            if (detail.type === 'objectiveMin') {
+              objectiveText = text('Objectif : minimiser la fraction', 'Objective: minimise the fraction');
+            } else if (detail.type === 'objectiveMax') {
+              objectiveText = text('Objectif : maximiser la fraction', 'Objective: maximise the fraction');
+            }
+            const infoParts = [
+              text(`Viscosité : ${formatViscosity(detail.viscosity)}`, `Viscosity: ${formatViscosity(detail.viscosity)}`),
+              constraintText
+            ];
+            if (objectiveText) infoParts.push(objectiveText);
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${detail.name}</strong> — ${infoParts.join(' · ')}`;
+            compList.appendChild(li);
           });
+          summaryContainer.appendChild(compList);
+
+          const mixLabel = translations['solver_summary_mixture'][currentLang] || 'Mixture';
+          let mixText;
+          if (mixDetails.type === 'setValue') {
+            mixText = text(`Fixé à ${formatViscosity(mixDetails.value)}`, `Fixed at ${formatViscosity(mixDetails.value)}`);
+          } else if (mixDetails.type === 'range') {
+            const minText = formatViscosity(mixDetails.min);
+            const maxText = formatViscosity(mixDetails.max);
+            mixText = text(`Entre ${minText} et ${maxText}`, `Between ${minText} and ${maxText}`);
+          } else if (mixDetails.type === 'objectiveMin') {
+            mixText = text('Objectif : minimiser la viscosité du mélange', 'Objective: minimise the mixture viscosity');
+          } else if (mixDetails.type === 'objectiveMax') {
+            mixText = text('Objectif : maximiser la viscosité du mélange', 'Objective: maximise the mixture viscosity');
+          } else {
+            mixText = text('Libre (aucune contrainte sur la viscosité)', 'Free (no viscosity constraint)');
+          }
+          const mixSummary = document.createElement('p');
+          mixSummary.innerHTML = `<strong>${mixLabel} :</strong> ${mixText}`;
+          summaryContainer.appendChild(mixSummary);
+
+          solverResultDiv.appendChild(summaryContainer);
+
+          const resultsTitle = document.createElement('h4');
+          resultsTitle.textContent = translations['solver_result_title'][currentLang] || 'Results';
+          solverResultDiv.appendChild(resultsTitle);
+
+          const resultsList = document.createElement('ul');
+          componentDetails.forEach(detail => {
+            const key = String(detail.index);
+            const fractionVal = fractions[key];
+            const fractionText = formatPercentFixed(fractionVal, 2);
+            let line = `<strong>${detail.name}</strong> : ${fractionText}`;
+            const rangeInfo = diagRanges[key];
+            if (rangeInfo) {
+              const minVal = typeof rangeInfo.min === 'number' ? rangeInfo.min : parseFloat(rangeInfo.min);
+              const maxVal = typeof rangeInfo.max === 'number' ? rangeInfo.max : parseFloat(rangeInfo.max);
+              if (Number.isFinite(minVal) && Number.isFinite(maxVal) && (maxVal - minVal) > rangeThreshold) {
+                const rangeLabel = translations['solver_possible_range'][currentLang] || 'Feasible range';
+                line += ` <span class="solver-range">(${rangeLabel}: ${formatPercentFlexible(minVal, 4)} – ${formatPercentFlexible(maxVal, 4)})</span>`;
+              }
+            }
+            const li = document.createElement('li');
+            li.innerHTML = line;
+            resultsList.appendChild(li);
+          });
+          solverResultDiv.appendChild(resultsList);
+
           const viscEl = document.createElement('p');
-          viscEl.innerHTML = `<strong>${currentLang === 'FR' ? 'Viscosité cinématique du mélange résultant :' : 'Resulting mixture kinematic viscosity:'}</strong> ${body.viscosity.toFixed(2)} mm²/s`;
+          const viscLabel = text('Viscosité cinématique du mélange résultant :', 'Resulting mixture kinematic viscosity:');
+          viscEl.innerHTML = `<strong>${viscLabel}</strong> ${formatViscosity(body.viscosity)}`;
           solverResultDiv.appendChild(viscEl);
         }
       })

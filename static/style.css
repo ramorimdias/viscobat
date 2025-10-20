@@ -159,6 +159,37 @@ th {
   background-color: #f0f0f0;
 }
 
+.solver-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.35rem 0.4rem;
+}
+
+#solver-result {
+  margin-top: 1rem;
+}
+
+#solver-result h4 {
+  margin-bottom: 0.25rem;
+  margin-top: 1rem;
+}
+
+.solver-summary ul,
+#solver-result ul {
+  padding-left: 1.2rem;
+  margin-top: 0.25rem;
+}
+
+.solver-diagnostic {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.solver-range {
+  font-style: italic;
+  color: #555;
+}
+
 .table-wrapper {
   overflow-x: auto;
 }

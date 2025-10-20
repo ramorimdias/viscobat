@@ -488,7 +488,16 @@ def solve_general_mixture(data):
             return {'error': 'Mixture viscosity does not match target value'}
         if mix_range_min is not None and (v_mix < mix_range_min - 1e-6 or v_mix > mix_range_max + 1e-6):
             return {'error': 'Mixture viscosity not within specified range'}
-        return {'fractions': {idx: frac * 100.0 for idx, frac in fixed_fractions}, 'viscosity': v_mix}
+        return {
+            'fractions': {idx: frac * 100.0 for idx, frac in fixed_fractions},
+            'viscosity': v_mix,
+            'diagnostics': {
+                'status': 'unique',
+                'variableRanges': {},
+                'tolerancePercent': 1e-4
+            },
+            'objective': None
+        }
     # build linear programming problem
     m = len(var_indices)
     # Equality: sum p_i = 1 - fixed_sum
@@ -570,10 +579,90 @@ def solve_general_mixture(data):
     # compute mixture viscosity
     x_total = fixed_x_contrib + sum(res.x[j] * x_values[j] for j in range(m))
     viscosity = 10 ** (10 ** x_total) - 0.7
+    # analyse solution uniqueness by probing variable ranges
+    tol = 1e-6
+    variable_ranges = {}
+    unique_solution = True
+
+    A_eq_base = A_eq.copy() if A_eq is not None else None
+    b_eq_base = b_eq.copy() if b_eq is not None else None
+
+    extra_rows = []
+    extra_vals = []
+    if objective_type == 'mixture':
+        extra_rows.append(np.array(x_values))
+        extra_vals.append(float(np.dot(x_values, res.x)))
+    elif objective_type == 'component':
+        row = np.zeros(m)
+        row[objective_index] = 1.0
+        extra_rows.append(row)
+        extra_vals.append(float(res.x[objective_index]))
+
+    extra_rows = np.array(extra_rows) if extra_rows else None
+    extra_vals = np.array(extra_vals) if extra_vals else None
+
+    for j, orig_idx in enumerate(var_indices):
+        # combine equality constraints with potential objective equality
+        if A_eq_base is not None:
+            A_eq_full = A_eq_base.copy()
+            b_eq_full = b_eq_base.copy()
+            if extra_rows is not None:
+                A_eq_full = np.vstack([A_eq_full, extra_rows])
+                b_eq_full = np.concatenate([b_eq_full, extra_vals])
+        elif extra_rows is not None:
+            A_eq_full = extra_rows.copy()
+            b_eq_full = extra_vals.copy()
+        else:
+            A_eq_full = None
+            b_eq_full = None
+
+        # minimise component j
+        c_min = np.zeros(m)
+        c_min[j] = 1.0
+        res_min = linprog(c_min, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq_full, b_eq=b_eq_full,
+                          bounds=var_bounds, method='highs')
+        min_val = res_min.x[j] if res_min.success else res.x[j]
+
+        # maximise component j (minimise negative)
+        c_max = np.zeros(m)
+        c_max[j] = -1.0
+        res_max = linprog(c_max, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq_full, b_eq=b_eq_full,
+                          bounds=var_bounds, method='highs')
+        max_val = res_max.x[j] if res_max.success else res.x[j]
+
+        if abs(min_val - res.x[j]) > tol or abs(max_val - res.x[j]) > tol:
+            unique_solution = False
+
+        variable_ranges[str(orig_idx)] = {
+            'min': round(min_val * 100.0, 6),
+            'max': round(max_val * 100.0, 6)
+        }
+
+    objective_info = None
+    if objective_type == 'mixture':
+        objective_info = {
+            'type': 'mixture',
+            'direction': objective_direction
+        }
+    elif objective_type == 'component':
+        objective_info = {
+            'type': 'component',
+            'direction': objective_direction,
+            'componentIndex': var_indices[objective_index]
+        }
+
+    diagnostics = {
+        'status': 'unique' if unique_solution else 'multiple',
+        'variableRanges': variable_ranges,
+        'tolerancePercent': tol * 100.0
+    }
+
     # return fractions in percent along with viscosity
     return {
         'fractions': {i: round(f * 100.0, 6) for i, f in enumerate(fractions)},
-        'viscosity': viscosity
+        'viscosity': viscosity,
+        'diagnostics': diagnostics,
+        'objective': objective_info
     }
 
 
