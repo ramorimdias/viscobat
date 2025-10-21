@@ -708,6 +708,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const mixValueRow = document.getElementById('mix-value-row');
   const mixRangeRow = document.getElementById('mix-range-row');
   const solverRowCountKey = 'vb_solver_row_count';
+  let lastSolverRequest = null;
+  let lastSolverResult = null;
 
   function addSolverRow(viscosity = '', type = 'free', value = '', min = '', max = '', nameValue = '') {
     const rowIndex = solverTableBody.children.length + 1;
@@ -905,6 +907,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const obj = {};
       obj.viscosity = visc;
       obj.type = type;
+      obj.name = name;
       let storedValue = null;
       let storedMin = null;
       let storedMax = null;
@@ -965,10 +968,13 @@ document.addEventListener('DOMContentLoaded', () => {
         mixDetails.max = null;
       }
     }
+    lastSolverRequest = JSON.parse(JSON.stringify({ components: comps, mixture: mixObj }));
+    lastSolverResult = null;
+
     fetch('/api/solver', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ components: comps, mixture: mixObj })
+      body: JSON.stringify(lastSolverRequest)
     })
       .then(resp => resp.json().then(data => ({ status: resp.status, body: data })))
       .then(({ status, body }) => {
@@ -977,6 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           // show result
           solverResultDiv.innerHTML = '';
+          lastSolverResult = JSON.parse(JSON.stringify(body));
           const fractions = body.fractions || {};
           const diagnostics = body.diagnostics || {};
           const diagRanges = diagnostics.variableRanges || {};
@@ -1106,6 +1113,68 @@ document.addEventListener('DOMContentLoaded', () => {
           const viscLabel = text('Viscosité cinématique du mélange résultant :', 'Resulting mixture kinematic viscosity:');
           viscEl.innerHTML = `<strong>${viscLabel}</strong> ${formatViscosity(body.viscosity)}`;
           solverResultDiv.appendChild(viscEl);
+
+          const exportBtn = document.createElement('button');
+          exportBtn.type = 'button';
+          exportBtn.className = 'secondary-btn solver-export-btn';
+          exportBtn.textContent = text('Exporter vers Excel', 'Export to Excel');
+          exportBtn.addEventListener('click', () => {
+            if (!lastSolverRequest || !lastSolverResult) {
+              window.alert(text('Veuillez d’abord résoudre le problème pour exporter.', 'Please solve the problem before exporting.'));
+              return;
+            }
+            const defaultName = `viscobat_solver_${new Date().toISOString().slice(0, 10)}`;
+            const promptMessage = text('Nom du fichier pour l’export (sans extension) :', 'Enter a file name for the export (without extension):');
+            let fileName = window.prompt(promptMessage, defaultName);
+            if (fileName === null) {
+              return;
+            }
+            fileName = fileName.trim();
+            if (!fileName) {
+              fileName = defaultName;
+            }
+            if (!fileName.toLowerCase().endsWith('.xlsx')) {
+              fileName += '.xlsx';
+            }
+            const payload = JSON.parse(JSON.stringify(lastSolverRequest));
+            payload.filename = fileName;
+            fetch('/api/solver/export', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            })
+              .then(resp => {
+                if (!resp.ok) {
+                  return resp.text().then(textResp => {
+                    let message = textResp;
+                    try {
+                      const data = JSON.parse(textResp);
+                      message = data.error || message;
+                    } catch (err) {
+                      /* keep message */
+                    }
+                    throw new Error(message || 'Export failed');
+                  });
+                }
+                return resp.blob();
+              })
+              .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => {
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }, 100);
+              })
+              .catch(err => {
+                window.alert(`${text("Échec de l’export :", 'Export failed:')} ${err.message}`);
+              });
+          });
+          solverResultDiv.appendChild(exportBtn);
         }
       })
       .catch(err => {
