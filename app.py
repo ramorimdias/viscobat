@@ -1,6 +1,13 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
+import io
 import math
+import re
+from datetime import datetime
+
 import numpy as np
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 from scipy.optimize import linprog
 
 """
@@ -666,6 +673,153 @@ def solve_general_mixture(data):
     }
 
 
+def _sanitize_export_filename(name: str) -> str:
+    """Return a safe Excel filename based on the provided name."""
+    if not isinstance(name, str):
+        name = ''
+    cleaned = re.sub(r'[\\/:*?"<>|]', '', name.strip())
+    if not cleaned:
+        cleaned = 'solver_export'
+    if not cleaned.lower().endswith('.xlsx'):
+        cleaned += '.xlsx'
+    # limit length to avoid filesystem issues
+    return cleaned[:200]
+
+
+def _autosize_columns(ws):
+    """Adjust column widths based on cell contents."""
+    for column_cells in ws.columns:
+        length = 0
+        for cell in column_cells:
+            if cell.value is None:
+                continue
+            length = max(length, len(str(cell.value)))
+        column_letter = get_column_letter(column_cells[0].column)
+        ws.column_dimensions[column_letter].width = min(length + 2, 60)
+
+
+def _create_solver_export_workbook(request_data, result):
+    """Build an Excel workbook summarising solver inputs and outputs."""
+    components = request_data.get('components', [])
+    mixture = request_data.get('mixture', {}) or {}
+    fractions = result.get('fractions', {})
+    diagnostics = result.get('diagnostics', {}) or {}
+    objective = result.get('objective')
+    viscosity = result.get('viscosity')
+
+    wb = Workbook()
+    summary_ws = wb.active
+    summary_ws.title = 'Summary'
+
+    title_cell = summary_ws.cell(row=1, column=1, value='Viscobat Solver Export')
+    title_cell.font = Font(bold=True, size=14)
+    timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+
+    summary_rows = [
+        ('Generated at', timestamp),
+        ('Solution status', diagnostics.get('status') or 'unknown'),
+        ('Resulting mixture viscosity (mm²/s)', round(viscosity, 6) if isinstance(viscosity, (int, float)) else viscosity),
+    ]
+
+    tolerance = diagnostics.get('tolerancePercent')
+    if tolerance is not None:
+        summary_rows.append(('Solution tolerance (%)', round(float(tolerance), 6)))
+
+    mixture_type = mixture.get('type', 'free')
+    mixture_row_map = {
+        'free': 'Free (no viscosity constraint)',
+        'setValue': 'Fixed viscosity',
+        'range': 'Viscosity range',
+        'objectiveMin': 'Objective: minimise viscosity',
+        'objectiveMax': 'Objective: maximise viscosity',
+    }
+    summary_rows.append(('Mixture constraint', mixture_row_map.get(mixture_type, mixture_type)))
+
+    if mixture_type == 'setValue':
+        summary_rows.append(('Target viscosity (mm²/s)', mixture.get('value')))
+    elif mixture_type == 'range':
+        summary_rows.append(('Minimum viscosity (mm²/s)', mixture.get('min')))
+        summary_rows.append(('Maximum viscosity (mm²/s)', mixture.get('max')))
+
+    component_names = []
+    for idx, comp in enumerate(components):
+        name = comp.get('name') or f'Component {idx + 1}'
+        component_names.append(name)
+
+    if objective:
+        if objective.get('type') == 'mixture':
+            direction = objective.get('direction', '').lower()
+            summary_rows.append(('Objective', f"{direction.capitalize()} mixture viscosity"))
+        elif objective.get('type') == 'component':
+            direction = objective.get('direction', '').lower()
+            comp_idx = objective.get('componentIndex')
+            if comp_idx is not None and 0 <= comp_idx < len(component_names):
+                target_name = component_names[comp_idx]
+            else:
+                target_name = f'Component {comp_idx}'
+            summary_rows.append(('Objective', f"{direction.capitalize()} fraction of {target_name}"))
+
+    start_row = 3
+    for offset, (label, value) in enumerate(summary_rows):
+        summary_ws.cell(row=start_row + offset, column=1, value=label)
+        summary_ws.cell(row=start_row + offset, column=2, value=value)
+
+    _autosize_columns(summary_ws)
+
+    header_font = Font(bold=True)
+
+    comp_ws = wb.create_sheet('Components')
+    comp_headers = ['#', 'Name', 'Viscosity (mm²/s)', 'Constraint type', 'Value (%)', 'Min (%)', 'Max (%)', 'Objective']
+    comp_ws.append(comp_headers)
+    for cell in comp_ws[1]:
+        cell.font = header_font
+
+    for idx, comp in enumerate(components):
+        name = component_names[idx]
+        constraint_type = comp.get('type', 'free')
+        display_type = constraint_type
+        objective_text = ''
+        if constraint_type in ('objectiveMin', 'objectiveMax'):
+            display_type = 'free'
+            direction = 'minimise' if constraint_type == 'objectiveMin' else 'maximise'
+            objective_text = f'Objective: {direction} fraction'
+        row = [
+            idx + 1,
+            name,
+            comp.get('viscosity'),
+            display_type,
+            comp.get('value'),
+            comp.get('min'),
+            comp.get('max'),
+            objective_text
+        ]
+        comp_ws.append(row)
+
+    _autosize_columns(comp_ws)
+
+    res_ws = wb.create_sheet('Results')
+    res_headers = ['#', 'Name', 'Fraction (%)', 'Feasible min (%)', 'Feasible max (%)']
+    res_ws.append(res_headers)
+    for cell in res_ws[1]:
+        cell.font = header_font
+
+    variable_ranges = diagnostics.get('variableRanges', {})
+    for idx, name in enumerate(component_names):
+        frac_val = fractions.get(idx)
+        range_info = variable_ranges.get(str(idx), {})
+        res_ws.append([
+            idx + 1,
+            name,
+            frac_val,
+            range_info.get('min'),
+            range_info.get('max')
+        ])
+
+    _autosize_columns(res_ws)
+
+    return wb
+
+
 @app.route('/api/solver', methods=['POST'])
 def api_solver():
     data = request.get_json(force=True)
@@ -677,6 +831,30 @@ def api_solver():
     if 'error' in result:
         return jsonify({'error': result['error']}), 400
     return jsonify(result)
+
+
+@app.route('/api/solver/export', methods=['POST'])
+def api_solver_export():
+    data = request.get_json(force=True)
+    try:
+        result = solve_general_mixture(data)
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 400
+    if 'error' in result:
+        return jsonify({'error': result['error']}), 400
+
+    workbook = _create_solver_export_workbook(data, result)
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    filename = _sanitize_export_filename(data.get('filename', ''))
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 if __name__ == '__main__':
