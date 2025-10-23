@@ -297,6 +297,11 @@ th {
   color: #333;
 }
 
+.mixture-action-row,
+.solver-action-row {
+  margin-top: 1.25rem;
+}
+
 /* Mixture tables */
 #mixture-table th:nth-child(4),
 #mixture-table td:nth-child(4) {
