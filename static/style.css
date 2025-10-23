@@ -127,6 +127,12 @@ body.modal-open {
 
 .form-row.full-row {
   grid-column: 1 / -1;
+  align-items: flex-start;
+}
+
+.form-row.full-row > .primary-btn,
+.form-row.full-row > .secondary-btn {
+  width: auto;
 }
 
 label {
