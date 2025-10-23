@@ -417,10 +417,10 @@ def solve_general_mixture(data):
             ub = 1.0
             if ctype == 'range':
                 # range specified
-                minv = comp.get('min')
-                maxv = comp.get('max')
-                if minv is None or maxv is None:
-                    return {'error': f'Component {idx+1} range requires min and max'}
+                minv_raw = comp.get('min')
+                maxv_raw = comp.get('max')
+                minv = 0 if minv_raw in (None, '') else minv_raw
+                maxv = 100 if maxv_raw in (None, '') else maxv_raw
                 try:
                     lb = float(minv) / 100.0
                     ub = float(maxv) / 100.0
