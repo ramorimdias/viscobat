@@ -30,16 +30,46 @@
     </div>
   </header>
   <nav class="tab-bar">
-    <button class="tab-button active" data-tab="vi" data-i18n="tab_vi">Indice de viscosité</button>
-    <button class="tab-button" data-tab="temp" data-i18n="tab_temp">Viscosité cinématique vs Température</button>
-    <button class="tab-button" data-tab="mixture" data-i18n="tab_mixture">Mélange</button>
-    <button class="tab-button" data-tab="twoBases" data-i18n="tab_two_bases">Mélange 2 bases</button>
-    <button class="tab-button" data-tab="solver" data-i18n="tab_solver">Solveur</button>
+    <button
+      class="tab-button active"
+      data-tab="vi"
+      data-i18n="tab_vi"
+      data-i18n-title="tab_vi_tooltip"
+      title="Calcule l’indice de viscosité à partir de deux KV selon l’ASTM D2270."
+    >1. VI (ASTM D2270)</button>
+    <button
+      class="tab-button"
+      data-tab="temp"
+      data-i18n="tab_temp"
+      data-i18n-title="tab_temp_tooltip"
+      title="Prédit le KV à toute température via votre ajustement (p. ex. Walther)."
+    >2. Extrapolation V–T</button>
+    <button
+      class="tab-button"
+      data-tab="mixture"
+      data-i18n="tab_mixture"
+      data-i18n-title="tab_mixture_tooltip"
+      title="Saisir les KV composants et leurs fractions connues ; calcule le KV du mélange."
+    >3. Mélange → Viscosité</button>
+    <button
+      class="tab-button"
+      data-tab="twoBases"
+      data-i18n="tab_two_bases"
+      data-i18n-title="tab_two_bases_tooltip"
+      title="Entrer un KV cible (+ % fixés en option) ; résout les fractions inconnues."
+    >4. Viscosité cible → Mélange</button>
+    <button
+      class="tab-button"
+      data-tab="solver"
+      data-i18n="tab_solver"
+      data-i18n-title="tab_solver_tooltip"
+      title="Résout des mélanges complexes avec contraintes, valeur/plage cibles, objectifs de maximisation ou minimisation des fractions, etc."
+    >5. Mélanges Complexes</button>
   </nav>
   <main class="content">
     <!-- Tab: Viscosity Index -->
     <section id="tab-vi" class="tab-content active">
-      <h2 data-i18n="vi_heading">Indice de viscosité</h2>
+      <h2 data-i18n="vi_heading">1. VI (ASTM D2270)</h2>
       <form id="viForm" class="form-grid">
         <div class="form-row">
           <label for="vi-v1" data-i18n="label_v1">Viscosité cinématique 1 (mm²/s)</label>
@@ -66,7 +96,7 @@
 
     <!-- Tab: Temperature vs Viscosity -->
     <section id="tab-temp" class="tab-content">
-      <h2 data-i18n="temp_heading">Viscosité cinématique en fonction de la température</h2>
+      <h2 data-i18n="temp_heading">2. Extrapolation V–T</h2>
       <form id="tempForm" class="form-grid">
         <div class="form-row">
           <label for="temp-v1" data-i18n="label_v1">Viscosité cinématique 1 (mm²/s)</label>
@@ -109,7 +139,7 @@
 
     <!-- Tab: Mixture -->
     <section id="tab-mixture" class="tab-content">
-      <h2 data-i18n="mixture_heading">Mélange de plusieurs constituants</h2>
+      <h2 data-i18n="mixture_heading">3. Mélange → Viscosité</h2>
       <div class="mixture-controls">
         <button id="add-component-btn" class="secondary-btn" data-i18n="btn_add_component">Ajouter un constituant</button>
       </div>
@@ -136,7 +166,7 @@
 
     <!-- Tab: Two bases mixture -->
     <section id="tab-twoBases" class="tab-content">
-      <h2 data-i18n="two_bases_heading">Mélange avec deux bases</h2>
+      <h2 data-i18n="two_bases_heading">4. Viscosité cible → Mélange</h2>
       <form id="twoBasesForm" class="form-grid">
         <div class="form-row">
           <label for="tb-target" data-i18n="label_target_mix">Viscosité cinématique du mélange cible (mm²/s)</label>
@@ -173,7 +203,7 @@
 
     <!-- Tab: Solver -->
     <section id="tab-solver" class="tab-content">
-      <h2 data-i18n="solver_heading">Solveur de formulation</h2>
+      <h2 data-i18n="solver_heading">5. Mélanges Complexes</h2>
       <div class="solver-controls">
         <button id="add-solver-comp-btn" class="secondary-btn" data-i18n="btn_add_component">Ajouter un constituant</button>
       </div>
