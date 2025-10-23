@@ -1023,7 +1023,11 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(resp => resp.json().then(data => ({ status: resp.status, body: data })))
       .then(({ status, body }) => {
         if (status !== 200) {
-          solverResultDiv.textContent = body.error || 'Erreur';
+          solverResultDiv.innerHTML = '';
+          const errorParagraph = document.createElement('p');
+          errorParagraph.className = 'solver-diagnostic solver-diagnostic--error';
+          errorParagraph.textContent = body.error || 'Erreur';
+          solverResultDiv.appendChild(errorParagraph);
         } else {
           // show result
           solverResultDiv.innerHTML = '';
@@ -1063,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (diagnostics.status) {
             const diagKey = diagnostics.status === 'unique' ? 'solver_diag_unique' : 'solver_diag_multiple';
             const diagParagraph = document.createElement('p');
-            diagParagraph.className = 'solver-diagnostic';
+            diagParagraph.className = `solver-diagnostic ${diagnostics.status === 'unique' ? 'solver-diagnostic--unique' : 'solver-diagnostic--multiple'}`;
             diagParagraph.textContent = translations[diagKey] && translations[diagKey][currentLang]
               ? translations[diagKey][currentLang]
               : (diagnostics.status === 'unique' ? 'Unique solution found.' : 'Multiple feasible solutions detected.');

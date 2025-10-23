@@ -183,6 +183,26 @@ th {
 .solver-diagnostic {
   font-weight: 600;
   margin-bottom: 0.5rem;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.solver-diagnostic--unique {
+  background-color: #e6f4ea;
+  color: #0b6b2e;
+  border-left: 4px solid #34a853;
+}
+
+.solver-diagnostic--multiple {
+  background-color: #fff4e5;
+  color: #7c4400;
+  border-left: 4px solid #fbbc04;
+}
+
+.solver-diagnostic--error {
+  background-color: #fdecea;
+  color: #8a1c1c;
+  border-left: 4px solid #f87171;
 }
 
 .solver-range {
