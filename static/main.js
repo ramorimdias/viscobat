@@ -11,14 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const translations = {
     app_title: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
     app_name: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
-    tab_vi: { FR: '1. Indice de viscosité', EN: '1. Viscosity Index' },
-    tab_temp: {
-      FR: '2. Viscosité cinématique vs Température',
-      EN: '2. Kinematic Viscosity vs Temperature'
+    tab_vi: { FR: '1. VI (ASTM D2270)', EN: '1. VI (ASTM D2270)' },
+    tab_temp: { FR: '2. Extrapolation V–T', EN: '2. V–T Extrapolation' },
+    tab_mixture: { FR: '3. Mélange → Viscosité', EN: '3. Blend → Viscosity' },
+    tab_two_bases: {
+      FR: '4. Viscosité cible → Mélange',
+      EN: '4. Target Viscosity → Blend'
     },
-    tab_mixture: { FR: '3. Mélange', EN: '3. Mixture' },
-    tab_two_bases: { FR: '4. Mélange 2 bases', EN: '4. 2‑Base Mixer' },
-    tab_solver: { FR: '5. Solveur', EN: '5. Solver' },
+    tab_solver: { FR: '5. Mélanges Complexes', EN: '5. Complex Blends' },
     vi_heading: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
     temp_heading: { FR: 'Viscosité cinématique en fonction de la température', EN: 'Kinematic Viscosity vs Temperature' },
     mixture_heading: { FR: 'Mélange de plusieurs constituants', EN: 'Mixture of several components' },
