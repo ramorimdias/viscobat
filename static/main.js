@@ -11,16 +11,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const translations = {
     app_title: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
     app_name: { FR: 'Viscobat v2.0', EN: 'Viscobat v2.0' },
-    tab_vi: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
-    tab_temp: { FR: 'Viscosité cinématique vs Température', EN: 'Kinematic Viscosity vs Temperature' },
-    tab_mixture: { FR: 'Mélange', EN: 'Mixture' },
-    tab_two_bases: { FR: 'Mélange 2 bases', EN: '2‑Base Mixer' },
-    tab_solver: { FR: 'Solveur', EN: 'Solver' },
-    vi_heading: { FR: 'Indice de viscosité', EN: 'Viscosity Index' },
-    temp_heading: { FR: 'Viscosité cinématique en fonction de la température', EN: 'Kinematic Viscosity vs Temperature' },
-    mixture_heading: { FR: 'Mélange de plusieurs constituants', EN: 'Mixture of several components' },
-    two_bases_heading: { FR: 'Mélange avec deux bases', EN: 'Mixture with two bases' },
-    solver_heading: { FR: 'Solveur de formulation', EN: 'Formulation solver' },
+    tab_vi: { FR: '1. VI (ASTM D2270)', EN: '1. VI (ASTM D2270)' },
+    tab_vi_tooltip: {
+      FR: 'Calcule l’indice de viscosité à partir de deux KV selon l’ASTM D2270.',
+      EN: 'Compute viscosity index from two KVs per ASTM D2270.'
+    },
+    tab_temp: { FR: '2. Extrapolation V–T', EN: '2. V–T Extrapolation' },
+    tab_temp_tooltip: {
+      FR: 'Prédit le KV à toute température via votre ajustement (p. ex. Walther).',
+      EN: 'Predict KV at any temperature from your fit (e.g., Walther).'
+    },
+    tab_mixture: { FR: '3. Mélange → Viscosité', EN: '3. Blend → Viscosity' },
+    tab_mixture_tooltip: {
+      FR: 'Saisir les KV composants et leurs fractions connues ; calcule le KV du mélange.',
+      EN: 'Enter component KVs and known fractions; get mixture KV.'
+    },
+    tab_two_bases: {
+      FR: '4. Viscosité cible → Mélange',
+      EN: '4. Target Viscosity → Blend'
+    },
+    tab_two_bases_tooltip: {
+      FR: 'Entrer un KV cible (+ % fixés en option) ; résout les fractions inconnues.',
+      EN: 'Give target KV (+ optional fixed %); solve unknown fractions.'
+    },
+    tab_solver: { FR: '5. Mélanges Complexes', EN: '5. Complex Blends' },
+    tab_solver_tooltip: {
+      FR: 'Résout des mélanges complexes avec contraintes, valeur/plage cibles, objectifs de maximisation ou minimisation des fractions, etc.',
+      EN: 'Solve complex blends with constraints, target value, target range, maximise, minimise fractions, etc.'
+    },
+    vi_heading: { FR: '1. VI (ASTM D2270)', EN: '1. VI (ASTM D2270)' },
+    temp_heading: { FR: '2. Extrapolation V–T', EN: '2. V–T Extrapolation' },
+    mixture_heading: { FR: '3. Mélange → Viscosité', EN: '3. Blend → Viscosity' },
+    two_bases_heading: {
+      FR: '4. Viscosité cible → Mélange',
+      EN: '4. Target Viscosity → Blend'
+    },
+    solver_heading: { FR: '5. Mélanges Complexes', EN: '5. Complex Blends' },
     label_v1: { FR: 'Viscosité  1 (mm²/s)', EN: 'Viscosity 1 (mm²/s)' },
     label_v2: { FR: 'Viscosité  2 (mm²/s)', EN: 'Viscosity 2 (mm²/s)' },
     label_t1: { FR: 'Température 1 (°C)', EN: 'Temperature 1 (°C)' },
@@ -173,6 +199,24 @@ document.addEventListener('DOMContentLoaded', () => {
           el.textContent = trans[currentLang];
         }
       }
+
+      Object.entries(el.dataset).forEach(([dataKey, value]) => {
+        if (!dataKey.startsWith('i18n') || dataKey === 'i18n' || dataKey === 'i18nAttr') {
+          return;
+        }
+
+        const attrKey = dataKey.slice(4);
+        if (!attrKey) return;
+
+        const attrName = attrKey
+          .charAt(0)
+          .toLowerCase() + attrKey.slice(1).replace(/[A-Z]/g, char => '-' + char.toLowerCase());
+
+        const attrTrans = translations[value];
+        if (attrTrans && attrTrans[currentLang]) {
+          el.setAttribute(attrName, attrTrans[currentLang]);
+        }
+      });
     });
   }
 
