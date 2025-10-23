@@ -30,41 +30,11 @@
     </div>
   </header>
   <nav class="tab-bar">
-    <button
-      class="tab-button active"
-      data-tab="vi"
-      data-i18n="tab_vi"
-      data-i18n-title="tab_vi_tooltip"
-      title="Calcule l’indice de viscosité à partir de deux KV selon l’ASTM D2270."
-    >1. VI (ASTM D2270)</button>
-    <button
-      class="tab-button"
-      data-tab="temp"
-      data-i18n="tab_temp"
-      data-i18n-title="tab_temp_tooltip"
-      title="Prédit le KV à toute température via votre ajustement (p. ex. Walther)."
-    >2. Extrapolation V–T</button>
-    <button
-      class="tab-button"
-      data-tab="mixture"
-      data-i18n="tab_mixture"
-      data-i18n-title="tab_mixture_tooltip"
-      title="Saisir les KV composants et leurs fractions connues ; calcule le KV du mélange."
-    >3. Mélange → Viscosité</button>
-    <button
-      class="tab-button"
-      data-tab="twoBases"
-      data-i18n="tab_two_bases"
-      data-i18n-title="tab_two_bases_tooltip"
-      title="Entrer un KV cible (+ % fixés en option) ; résout les fractions inconnues."
-    >4. Viscosité cible → Mélange</button>
-    <button
-      class="tab-button"
-      data-tab="solver"
-      data-i18n="tab_solver"
-      data-i18n-title="tab_solver_tooltip"
-      title="Résout des mélanges complexes avec contraintes, valeur/plage cibles, objectifs de maximisation ou minimisation des fractions, etc."
-    >5. Mélanges Complexes</button>
+    <button class="tab-button active" data-tab="vi" data-i18n="tab_vi">Indice de viscosité</button>
+    <button class="tab-button" data-tab="temp" data-i18n="tab_temp">Viscosité cinématique vs Température</button>
+    <button class="tab-button" data-tab="mixture" data-i18n="tab_mixture">Mélange</button>
+    <button class="tab-button" data-tab="twoBases" data-i18n="tab_two_bases">Mélange 2 bases</button>
+    <button class="tab-button" data-tab="solver" data-i18n="tab_solver">Solveur</button>
   </nav>
   <main class="content">
     <!-- Tab: Viscosity Index -->
