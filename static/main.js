@@ -107,7 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
       FR: 'La corrélation logarithmique de Walter est le cœur de cet outil, permettant d’établir avec précision le lien entre viscosité et température pour accompagner vos formulations.',
       EN: 'The Walter log correlation is the heart of this tool, enabling a precise link between viscosity and temperature to support your formulations.'
     },
-    modal_close_label: { FR: 'Fermer', EN: 'Close' }
+    modal_close_label: { FR: 'Fermer', EN: 'Close' },
+    walther_equation_label: { FR: 'Ajustement log-log (Walther) :', EN: 'Log–log fit (Walther):' }
   };
 
   // --- Persistence helpers using localStorage ---
@@ -225,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setStored('vb_language', currentLang);
     translatePage();
     drawChart(currentChartData);
+    renderWaltherEquation();
   });
 
   translatePage();
@@ -307,8 +309,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const tempTableBody = document.querySelector('#temp-table tbody');
   const tempResult = document.getElementById('temp-target-result');
   const tempCanvas = document.getElementById('temp-chart');
+  const waltherEquation = document.getElementById('walther-equation');
   const ctx = tempCanvas.getContext('2d');
   let currentChartData = [];
+  let waltherParams = null;
 
   tempForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -334,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // update table
           tempTableBody.innerHTML = '';
           currentChartData = [];
+          waltherParams = { slope: body.slope, intercept: body.intercept };
           body.table.forEach(row => {
             const tr = document.createElement('tr');
             const tdT = document.createElement('td');
@@ -346,6 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentChartData.push({ x: row.temperature, y: row.viscosity });
           });
           drawChart(currentChartData);
+          renderWaltherEquation();
         }
       })
       .catch(err => {
@@ -354,6 +360,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   translations['temp_result_at'] = { FR: 'Viscosité cinématique à la température voulue :', EN: 'Kinematic viscosity at target temperature:' };
+
+  function renderWaltherEquation(params = waltherParams) {
+    if (!waltherEquation) return;
+    if (!params) {
+      waltherEquation.textContent = '';
+      return;
+    }
+    const label = translations['walther_equation_label'][currentLang] || 'Log–log fit (Walther):';
+    const slope = params.slope;
+    const intercept = params.intercept;
+    const equation = `log₁₀(log₁₀(ν + 0.7)) = ${intercept.toFixed(4)} − ${slope.toFixed(4)} · log₁₀(T + 273.15)`;
+    waltherEquation.innerHTML = `<strong>${label}</strong> ${equation}`;
+  }
 
   /**
    * Draw a simple line chart on the canvas using the provided data.

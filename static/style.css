@@ -175,6 +175,13 @@ th {
   margin-top: 1rem;
 }
 
+.equation-note {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: #444;
+  text-align: center;
+}
+
 #solver-result h4 {
   margin-bottom: 0.25rem;
   margin-top: 1rem;
