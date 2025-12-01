@@ -16,10 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
       FR: 'Calcule l’indice de viscosité à partir de deux KV selon l’ASTM D2270.',
       EN: 'Compute viscosity index from two KVs per ASTM D2270.'
     },
-    tab_temp: { FR: '2. Extrapolation V–T', EN: '2. V–T Extrapolation' },
+    tab_temp: { FR: '2. Extrapolation T', EN: '2. T extrapolation' },
     tab_temp_tooltip: {
-      FR: 'Prédit le KV à toute température via votre ajustement (p. ex. Walther).',
-      EN: 'Predict KV at any temperature from your fit (e.g., Walther).'
+      FR: 'Prédit les propriétés en fonction de la température.',
+      EN: 'Predict properties versus temperature.'
     },
     tab_mixture: { FR: '3. Mélange → Viscosité', EN: '3. Blend → Viscosity' },
     tab_mixture_tooltip: {
@@ -40,7 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
       EN: 'Solve complex blends with constraints, target value, target range, maximise, minimise fractions, etc.'
     },
     vi_heading: { FR: '1. VI (ASTM D2270)', EN: '1. VI (ASTM D2270)' },
-    temp_heading: { FR: '2. Extrapolation V–T', EN: '2. V–T Extrapolation' },
+    temp_heading: { FR: '2. Extrapolation T', EN: '2. T extrapolation' },
+    subtab_kv: { FR: 'KV (cSt)', EN: 'KV (cSt)' },
+    subtab_density: { FR: 'Densité (kg/m³)', EN: 'Density (kg/m³)' },
+    subtab_cp: { FR: 'Cp (kJ/kgK)', EN: 'Cp (kJ/kgK)' },
+    subtab_thermal: { FR: 'Conductivité thermique (W/mK)', EN: 'Thermal conductivity (W/mK)' },
+    kv_heading: { FR: 'KV (cSt)', EN: 'KV (cSt)' },
+    density_heading: { FR: 'Densité (kg/m³)', EN: 'Density (kg/m³)' },
+    cp_heading: { FR: 'Cp (kJ/kgK)', EN: 'Cp (kJ/kgK)' },
+    thermal_heading: { FR: 'Conductivité thermique (W/mK)', EN: 'Thermal conductivity (W/mK)' },
     mixture_heading: { FR: '3. Mélange → Viscosité', EN: '3. Blend → Viscosity' },
     two_bases_heading: {
       FR: '4. Viscosité cible → Mélange',
@@ -108,7 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
       EN: 'The Walter log correlation is the heart of this tool, enabling a precise link between viscosity and temperature to support your formulations.'
     },
     modal_close_label: { FR: 'Fermer', EN: 'Close' },
-    walther_equation_label: { FR: 'Ajustement log-log (Walther) :', EN: 'Log–log fit (Walther):' }
+    walther_equation_label: { FR: 'Ajustement log-log (Walther) :', EN: 'Log–log fit (Walther):' },
+    density_label: { FR: 'Densité (kg/m³)', EN: 'Density (kg/m³)' },
+    cp_label: { FR: 'Cp (kJ/kgK)', EN: 'Cp (kJ/kgK)' },
+    thermal_label: { FR: 'Conductivité thermique (W/mK)', EN: 'Thermal conductivity (W/mK)' },
+    btn_add_point: { FR: 'Ajouter un point', EN: 'Add point' },
+    linear_equation_label: { FR: 'Régression linéaire :', EN: 'Linear regression:' },
+    beta_label: { FR: 'Coefficient de dilatation thermique β :', EN: 'Thermal expansion coefficient β:' }
   };
 
   // --- Persistence helpers using localStorage ---
@@ -133,6 +147,24 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem(name);
     } catch (e) {
       /* ignore */
+    }
+  }
+
+  function setStoredJson(name, value) {
+    try {
+      setStored(name, JSON.stringify(value));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function getStoredJson(name, fallback = null) {
+    try {
+      const raw = getStored(name);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    } catch (e) {
+      return fallback;
     }
   }
 
@@ -225,8 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLang = languageSelect.value;
     setStored('vb_language', currentLang);
     translatePage();
-    drawChart(currentChartData);
+    redrawActiveSubtab();
     renderWaltherEquation();
+    ['density', 'cp', 'thermal'].forEach(renderRegressionEquation);
   });
 
   translatePage();
@@ -255,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('tab-' + tab).classList.add('active');
       // redraw chart if necessary
       if (tab === 'temp') {
-        drawChart(currentChartData);
+        redrawActiveSubtab();
       }
     });
   });
@@ -304,15 +337,228 @@ document.addEventListener('DOMContentLoaded', () => {
   translations['vi_result_v100'] = { FR: 'Viscosité cinématique à 100 °C :', EN: 'Kinematic Viscosity at 100°C:' };
   translations['vi_result_vi'] = { FR: 'Indice de viscosité :', EN: 'Viscosity index:' };
 
-  /* --- Temperature vs Viscosity form --- */
+  /* --- Temperature extrapolation with subtabs --- */
   const tempForm = document.getElementById('tempForm');
   const tempTableBody = document.querySelector('#temp-table tbody');
   const tempResult = document.getElementById('temp-target-result');
   const tempCanvas = document.getElementById('temp-chart');
   const waltherEquation = document.getElementById('walther-equation');
-  const ctx = tempCanvas.getContext('2d');
+  const subTabButtons = document.querySelectorAll('.sub-tab-button');
+  const subTabSections = document.querySelectorAll('.sub-tab-content');
+  const regressionChartData = { density: [], cp: [], thermal: [] };
+  const regressionFits = { density: null, cp: null, thermal: null };
   let currentChartData = [];
   let waltherParams = null;
+
+  const regressionConfigs = {
+    density: {
+      form: document.getElementById('densityForm'),
+      inputBody: document.getElementById('density-input-body'),
+      outputBody: document.querySelector('#density-table tbody'),
+      canvas: document.getElementById('density-chart'),
+      equationEl: document.getElementById('density-equation'),
+      betaEl: document.getElementById('density-beta'),
+      labelKey: 'density_label',
+      equationName: 'ρ'
+    },
+    cp: {
+      form: document.getElementById('cpForm'),
+      inputBody: document.getElementById('cp-input-body'),
+      outputBody: document.querySelector('#cp-table tbody'),
+      canvas: document.getElementById('cp-chart'),
+      equationEl: document.getElementById('cp-equation'),
+      labelKey: 'cp_label',
+      equationName: 'Cp'
+    },
+    thermal: {
+      form: document.getElementById('thermalForm'),
+      inputBody: document.getElementById('thermal-input-body'),
+      outputBody: document.querySelector('#thermal-table tbody'),
+      canvas: document.getElementById('thermal-chart'),
+      equationEl: document.getElementById('thermal-equation'),
+      labelKey: 'thermal_label',
+      equationName: 'k'
+    }
+  };
+
+  subTabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.subtab;
+      subTabButtons.forEach(b => b.classList.remove('active'));
+      subTabSections.forEach(sec => sec.classList.remove('active'));
+      btn.classList.add('active');
+      const activeSection = document.getElementById(`subtab-${key}`);
+      if (activeSection) activeSection.classList.add('active');
+      redrawActiveSubtab();
+    });
+  });
+
+  function redrawActiveSubtab() {
+    const active = document.querySelector('.sub-tab-button.active');
+    if (!active) return;
+    const key = active.dataset.subtab;
+    if (key === 'kv') {
+      drawLineChart(tempCanvas, currentChartData, {
+        xLabel: translations['axis_temp'][currentLang] || 'Temperature (°C)',
+        yLabel: translations['axis_visc'][currentLang] || 'Kinematic Viscosity (mm²/s)'
+      });
+    } else if (regressionChartData[key]) {
+      const cfg = regressionConfigs[key];
+      drawLineChart(cfg.canvas, regressionChartData[key], {
+        xLabel: translations['axis_temp'][currentLang] || 'Temperature (°C)',
+        yLabel: translations[cfg.labelKey][currentLang] || ''
+      });
+    }
+  }
+
+  function persistRegressionInputs(key) {
+    const cfg = regressionConfigs[key];
+    if (!cfg || !cfg.inputBody) return;
+    const points = [];
+    cfg.inputBody.querySelectorAll('.regression-input-row').forEach(row => {
+      const tVal = parseFloat(row.querySelector('.reg-temp-input').value);
+      const vVal = parseFloat(row.querySelector('.reg-value-input').value);
+      if (!isNaN(tVal) && !isNaN(vVal)) {
+        points.push({ temperature: tVal, value: vVal });
+      }
+    });
+    setStoredJson(`vb_reg_${key}_inputs`, points);
+  }
+
+  function addRegressionRow(tbody, key, values = {}) {
+    if (!tbody) return;
+    const tr = document.createElement('tr');
+    tr.classList.add('regression-input-row');
+    const tdTemp = document.createElement('td');
+    const tempInput = document.createElement('input');
+    tempInput.type = 'number';
+    tempInput.step = 'any';
+    tempInput.className = 'reg-temp-input';
+    if (values.temperature !== undefined) tempInput.value = values.temperature;
+    tdTemp.appendChild(tempInput);
+    const tdVal = document.createElement('td');
+    const valInput = document.createElement('input');
+    valInput.type = 'number';
+    valInput.step = 'any';
+    valInput.className = 'reg-value-input';
+    if (values.value !== undefined) valInput.value = values.value;
+    tdVal.appendChild(valInput);
+    const tdRemove = document.createElement('td');
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '×';
+    removeBtn.className = 'icon-btn';
+    removeBtn.addEventListener('click', () => {
+      tbody.removeChild(tr);
+      if (key) persistRegressionInputs(key);
+    });
+    tdRemove.appendChild(removeBtn);
+    tr.appendChild(tdTemp);
+    tr.appendChild(tdVal);
+    tr.appendChild(tdRemove);
+    tbody.appendChild(tr);
+    if (key) {
+      ['input', 'change'].forEach(evt => {
+        tempInput.addEventListener(evt, () => persistRegressionInputs(key));
+        valInput.addEventListener(evt, () => persistRegressionInputs(key));
+      });
+    }
+  }
+
+  function persistRegressionResults(key, table) {
+    setStoredJson(`vb_reg_${key}_results`, {
+      table,
+      fit: regressionFits[key]
+    });
+  }
+
+  function restoreRegressionInputs(key) {
+    const cfg = regressionConfigs[key];
+    if (!cfg || !cfg.inputBody) return;
+    const saved = getStoredJson(`vb_reg_${key}_inputs`, []);
+    cfg.inputBody.innerHTML = '';
+    if (saved.length > 0) {
+      saved.forEach(entry => addRegressionRow(cfg.inputBody, key, entry));
+    } else {
+      addRegressionRow(cfg.inputBody, key);
+      addRegressionRow(cfg.inputBody, key);
+    }
+  }
+
+  function restoreRegressionResults(key) {
+    const cfg = regressionConfigs[key];
+    if (!cfg || !cfg.outputBody) return;
+    const saved = getStoredJson(`vb_reg_${key}_results`, null);
+    cfg.outputBody.innerHTML = '';
+    regressionChartData[key] = [];
+    regressionFits[key] = null;
+    if (saved && Array.isArray(saved.table)) {
+      saved.table.forEach(row => {
+        const tr = document.createElement('tr');
+        const tdT = document.createElement('td');
+        tdT.textContent = row.temperature;
+        const tdV = document.createElement('td');
+        tdV.textContent = Number(row.value).toFixed(4);
+        tr.appendChild(tdT);
+        tr.appendChild(tdV);
+        cfg.outputBody.appendChild(tr);
+        regressionChartData[key].push({ x: row.temperature, y: row.value });
+      });
+      regressionFits[key] = saved.fit || null;
+    }
+    renderRegressionEquation(key);
+  }
+
+  ['density', 'cp', 'thermal'].forEach(key => {
+    restoreRegressionInputs(key);
+    restoreRegressionResults(key);
+  });
+
+  document.querySelectorAll('.regression-add-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const tbody = document.getElementById(targetId);
+      const match = Object.entries(regressionConfigs).find(([, cfg]) => cfg.inputBody && cfg.inputBody.id === targetId);
+      const key = match ? match[0] : undefined;
+      addRegressionRow(tbody, key);
+      if (key) persistRegressionInputs(key);
+    });
+  });
+
+  function persistWaltherState(data, targetTemp) {
+    setStoredJson('vb_walther_state', {
+      params: { slope: data.slope, intercept: data.intercept },
+      table: data.table,
+      targetViscosity: data.targetViscosity,
+      targetTemp
+    });
+  }
+
+  function restoreWaltherState() {
+    const saved = getStoredJson('vb_walther_state', null);
+    if (!saved) return;
+    tempTableBody.innerHTML = '';
+    currentChartData = [];
+    waltherParams = saved.params;
+    if (Array.isArray(saved.table)) {
+      saved.table.forEach(row => {
+        const tr = document.createElement('tr');
+        const tdT = document.createElement('td');
+        tdT.textContent = row.temperature;
+        const tdV = document.createElement('td');
+        tdV.textContent = Number(row.viscosity).toFixed(2);
+        tr.appendChild(tdT);
+        tr.appendChild(tdV);
+        tempTableBody.appendChild(tr);
+        currentChartData.push({ x: row.temperature, y: row.viscosity });
+      });
+    }
+    if (saved.targetViscosity !== undefined) {
+      tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${Number(saved.targetViscosity).toFixed(2)} mm²/s`;
+    }
+    renderWaltherEquation();
+    redrawActiveSubtab();
+  }
 
   tempForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -331,11 +577,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (status !== 200) {
           tempResult.textContent = body.error || 'Erreur';
         } else {
-          // update target result
           if (body.targetViscosity !== undefined) {
             tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${body.targetViscosity.toFixed(2)} mm²/s`;
           }
-          // update table
           tempTableBody.innerHTML = '';
           currentChartData = [];
           waltherParams = { slope: body.slope, intercept: body.intercept };
@@ -350,8 +594,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tempTableBody.appendChild(tr);
             currentChartData.push({ x: row.temperature, y: row.viscosity });
           });
-          drawChart(currentChartData);
+          persistWaltherState(body, target);
           renderWaltherEquation();
+          redrawActiveSubtab();
         }
       })
       .catch(err => {
@@ -360,6 +605,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   translations['temp_result_at'] = { FR: 'Viscosité cinématique à la température voulue :', EN: 'Kinematic viscosity at target temperature:' };
+
+  restoreWaltherState();
 
   function renderWaltherEquation(params = waltherParams) {
     if (!waltherEquation) return;
@@ -370,25 +617,97 @@ document.addEventListener('DOMContentLoaded', () => {
     const label = translations['walther_equation_label'][currentLang] || 'Log–log fit (Walther):';
     const slope = params.slope;
     const intercept = params.intercept;
-    const equation = `log₁₀(log₁₀(ν + 0.7)) = ${intercept.toFixed(4)} − ${slope.toFixed(4)} · log₁₀(T + 273.15)`;
+    const equation = `KV(T) = 10^(10^(${intercept.toFixed(4)} − ${slope.toFixed(4)} · log₁₀(T + 273.15))) − 0.7`;
     waltherEquation.innerHTML = `<strong>${label}</strong> ${equation}`;
   }
 
+  Object.entries(regressionConfigs).forEach(([key, cfg]) => {
+    if (!cfg.form) return;
+    cfg.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const points = [];
+      cfg.inputBody.querySelectorAll('.regression-input-row').forEach(row => {
+        const tVal = parseFloat(row.querySelector('.reg-temp-input').value);
+        const vVal = parseFloat(row.querySelector('.reg-value-input').value);
+        if (!isNaN(tVal) && !isNaN(vVal)) {
+          points.push({ temperature: tVal, value: vVal });
+        }
+      });
+      if (points.length < 2) {
+        cfg.equationEl.textContent = `${translations['linear_equation_label'][currentLang]} ${currentLang === 'FR' ? 'Ajoutez au moins deux points.' : 'Add at least two points.'}`;
+        return;
+      }
+      fetch('/api/property_regression', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ property: key, points })
+      })
+        .then(resp => resp.json().then(data => ({ status: resp.status, body: data })))
+        .then(({ status, body }) => {
+          if (status !== 200) {
+            cfg.equationEl.textContent = body.error || 'Erreur';
+            return;
+          }
+          cfg.outputBody.innerHTML = '';
+          regressionChartData[key] = [];
+          body.table.forEach(row => {
+            const tr = document.createElement('tr');
+            const tdT = document.createElement('td');
+            tdT.textContent = row.temperature;
+            const tdV = document.createElement('td');
+            tdV.textContent = row.value.toFixed(4);
+            tr.appendChild(tdT);
+            tr.appendChild(tdV);
+            cfg.outputBody.appendChild(tr);
+            regressionChartData[key].push({ x: row.temperature, y: row.value });
+          });
+          regressionFits[key] = { slope: body.slope, intercept: body.intercept, beta: body.beta };
+          persistRegressionResults(key, body.table);
+          renderRegressionEquation(key);
+          redrawActiveSubtab();
+        })
+        .catch(err => {
+          cfg.equationEl.textContent = err.toString();
+        });
+    });
+  });
+
+  function renderRegressionEquation(key) {
+    const cfg = regressionConfigs[key];
+    if (!cfg || !cfg.equationEl) return;
+    const fit = regressionFits[key];
+    if (!fit) {
+      cfg.equationEl.textContent = '';
+      if (cfg.betaEl) cfg.betaEl.textContent = '';
+      return;
+    }
+    const label = translations['linear_equation_label'][currentLang] || 'Linear regression:';
+    const propName = cfg.equationName || (translations[cfg.labelKey]?.[currentLang] || key.toUpperCase());
+    const formatted = `${propName}(T) = ${fit.intercept.toFixed(4)} ${fit.slope >= 0 ? '+' : '−'} ${Math.abs(fit.slope).toFixed(4)}·T`;
+    cfg.equationEl.innerHTML = `<strong>${label}</strong> ${formatted}`;
+    if (cfg.betaEl) {
+      if (fit.beta !== null && fit.beta !== undefined) {
+        const betaLabel = translations['beta_label'][currentLang] || 'β:';
+        cfg.betaEl.innerHTML = `${betaLabel} ${Number(fit.beta).toExponential(4)} 1/°C`;
+      } else {
+        cfg.betaEl.textContent = '';
+      }
+    }
+  }
+
   /**
-   * Draw a simple line chart on the canvas using the provided data.
-   * data: array of objects {x: temperature, y: viscosity}
+   * Draw a simple line chart on a canvas using the provided data.
    */
-  function drawChart(data) {
-    // if the temp tab is not visible, skip drawing to avoid wasted work
-    const canvasStyle = window.getComputedStyle(tempCanvas);
+  function drawLineChart(canvas, data, { xLabel = 'Temperature (°C)', yLabel = 'Value' } = {}) {
+    if (!canvas) return;
+    const canvasStyle = window.getComputedStyle(canvas);
     const isHidden = canvasStyle.display === 'none' || !document.getElementById('tab-temp').classList.contains('active');
     if (isHidden) return;
-    // clear canvas
-    const width = tempCanvas.width;
-    const height = tempCanvas.height;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
     if (!data || data.length === 0) return;
-    // determine ranges
     let xMin = data[0].x;
     let xMax = data[0].x;
     let yMin = 0;
@@ -396,6 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
     data.forEach(pt => {
       if (pt.x < xMin) xMin = pt.x;
       if (pt.x > xMax) xMax = pt.x;
+      if (pt.y < yMin) yMin = pt.y;
       if (pt.y > yMax) yMax = pt.y;
     });
     const yRange = yMax - yMin;
@@ -404,6 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
       yMax += 1;
     } else {
       yMax += yRange * 0.1;
+      yMin -= yRange * 0.05;
     }
     if (xRange === 0) {
       xMin -= 1;
@@ -418,30 +739,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const marginRight = 20;
     const plotWidth = width - marginLeft - marginRight;
     const plotHeight = height - marginTop - marginBottom;
-    // helpers to transform data to canvas coords
-    function xToCanvas(x) {
-      return marginLeft + ((x - xMin) / (xMax - xMin)) * plotWidth;
-    }
-    function yToCanvas(y) {
-      return marginTop + plotHeight - ((y - yMin) / (yMax - yMin)) * plotHeight;
-    }
-    // draw axes
+    const xToCanvas = (x) => marginLeft + ((x - xMin) / (xMax - xMin || 1)) * plotWidth;
+    const yToCanvas = (y) => marginTop + plotHeight - ((y - yMin) / (yMax - yMin || 1)) * plotHeight;
     ctx.strokeStyle = '#444';
     ctx.lineWidth = 1;
-    // x axis
     ctx.beginPath();
     ctx.moveTo(marginLeft, marginTop + plotHeight);
     ctx.lineTo(marginLeft + plotWidth, marginTop + plotHeight);
     ctx.stroke();
-    // y axis
     ctx.beginPath();
     ctx.moveTo(marginLeft, marginTop);
     ctx.lineTo(marginLeft, marginTop + plotHeight);
     ctx.stroke();
-    // draw ticks and labels
     ctx.font = '12px Arial';
     ctx.fillStyle = '#444';
-    // x ticks (use actual temperature values)
     data.forEach(pt => {
       const xC = xToCanvas(pt.x);
       ctx.beginPath();
@@ -450,7 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.stroke();
       ctx.fillText(String(pt.x), xC - 10, marginTop + plotHeight + 18);
     });
-    // y ticks using nice numbers
     const yTicks = getNiceTicks(yMin, yMax, 5);
     yTicks.forEach(tick => {
       const yC = yToCanvas(tick);
@@ -459,7 +769,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.lineTo(marginLeft, yC);
       ctx.stroke();
       ctx.fillText(tick.toFixed(2), marginLeft - 50, yC + 4);
-      // horizontal grid line
       ctx.strokeStyle = '#e0e0e0';
       ctx.beginPath();
       ctx.moveTo(marginLeft, yC);
@@ -467,19 +776,16 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.stroke();
       ctx.strokeStyle = '#444';
     });
-    // axis labels
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(translations['axis_temp'][currentLang] || 'Temperature (°C)',
-      marginLeft + plotWidth / 2, marginTop + plotHeight + 40);
+    ctx.fillText(xLabel, marginLeft + plotWidth / 2, marginTop + plotHeight + 40);
     ctx.save();
     ctx.translate(marginLeft - 75, marginTop + plotHeight / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(translations['axis_visc'][currentLang] || 'Kinematic Viscosity (mm²/s)', 0, 0);
+    ctx.fillText(yLabel, 0, 0);
     ctx.restore();
-    // draw the line
     ctx.strokeStyle = '#c62828';
     ctx.lineWidth = 2;
     ctx.beginPath();
