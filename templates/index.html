@@ -43,7 +43,7 @@
       data-i18n="tab_temp"
       data-i18n-title="tab_temp_tooltip"
       title="Prédit le KV à toute température via votre ajustement (p. ex. Walther)."
-    >2. Extrapolation V–T</button>
+    >2. T extrapolation</button>
     <button
       class="tab-button"
       data-tab="mixture"
@@ -96,46 +96,167 @@
 
     <!-- Tab: Temperature vs Viscosity -->
     <section id="tab-temp" class="tab-content">
-      <h2 data-i18n="temp_heading">2. Extrapolation V–T</h2>
-      <form id="tempForm" class="form-grid">
-        <div class="form-row">
-          <label for="temp-v1" data-i18n="label_v1">Viscosité cinématique 1 (mm²/s)</label>
-          <input type="number" step="any" id="temp-v1" required>
-        </div>
-        <div class="form-row">
-          <label for="temp-t1" data-i18n="label_t1">Température 1 (°C)</label>
-          <input type="number" step="any" id="temp-t1" value="40" required>
-        </div>
-        <div class="form-row">
-          <label for="temp-v2" data-i18n="label_v2">Viscosité cinématique 2 (mm²/s)</label>
-          <input type="number" step="any" id="temp-v2" required>
-        </div>
-        <div class="form-row">
-          <label for="temp-t2" data-i18n="label_t2">Température 2 (°C)</label>
-          <input type="number" step="any" id="temp-t2" value="100" required>
-        </div>
-        <div class="form-row">
-          <label for="temp-target" data-i18n="label_target_temp">Température voulue (°C)</label>
-          <input type="number" step="any" id="temp-target" value="20" required>
-        </div>
-        <div class="form-row full-row">
-          <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
-        </div>
-      </form>
-      <div id="temp-target-result" class="result"></div>
-      <div class="table-wrapper">
-        <table id="temp-table">
-          <thead>
-            <tr>
-              <th data-i18n="table_temp">Température (°C)</th>
-              <th data-i18n="table_visc">Viscosité cinématique (mm²/s)</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <h2 data-i18n="temp_heading">2. T extrapolation</h2>
+      <div class="sub-tab-bar">
+        <button class="sub-tab-button active" data-subtab="kv" data-i18n="subtab_kv">KV (cSt)</button>
+        <button class="sub-tab-button" data-subtab="density" data-i18n="subtab_density">Density (kg/m³)</button>
+        <button class="sub-tab-button" data-subtab="cp" data-i18n="subtab_cp">Cp (kJ/kgK)</button>
+        <button class="sub-tab-button" data-subtab="thermal" data-i18n="subtab_thermal">Thermal conductivity (W/mK)</button>
       </div>
-      <canvas id="temp-chart" width="600" height="300"></canvas>
-      <div id="walther-equation" class="equation-note"></div>
+
+      <section id="subtab-kv" class="sub-tab-content active">
+        <h3 data-i18n="kv_heading">KV (cSt)</h3>
+        <form id="tempForm" class="form-grid">
+          <div class="form-row">
+            <label for="temp-v1" data-i18n="label_v1">Viscosité cinématique 1 (mm²/s)</label>
+            <input type="number" step="any" id="temp-v1" required>
+          </div>
+          <div class="form-row">
+            <label for="temp-t1" data-i18n="label_t1">Température 1 (°C)</label>
+            <input type="number" step="any" id="temp-t1" value="40" required>
+          </div>
+          <div class="form-row">
+            <label for="temp-v2" data-i18n="label_v2">Viscosité cinématique 2 (mm²/s)</label>
+            <input type="number" step="any" id="temp-v2" required>
+          </div>
+          <div class="form-row">
+            <label for="temp-t2" data-i18n="label_t2">Température 2 (°C)</label>
+            <input type="number" step="any" id="temp-t2" value="100" required>
+          </div>
+          <div class="form-row">
+            <label for="temp-target" data-i18n="label_target_temp">Température voulue (°C)</label>
+            <input type="number" step="any" id="temp-target" value="20" required>
+          </div>
+          <div class="form-row full-row">
+            <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+          </div>
+        </form>
+        <div id="temp-target-result" class="result"></div>
+        <div class="table-wrapper">
+          <table id="temp-table">
+            <thead>
+              <tr>
+                <th data-i18n="table_temp">Température (°C)</th>
+                <th data-i18n="table_visc">Viscosité cinématique (mm²/s)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <canvas id="temp-chart" width="600" height="300"></canvas>
+        <div id="walther-equation" class="equation-note"></div>
+      </section>
+
+      <section id="subtab-density" class="sub-tab-content">
+        <h3 data-i18n="density_heading">Density (kg/m³)</h3>
+        <form id="densityForm" class="form-grid">
+          <div class="form-row full-row">
+            <div class="table-wrapper">
+              <table class="regression-input-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="table_temp">Température (°C)</th>
+                    <th data-i18n="density_label">Density (kg/m³)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="density-input-body" class="regression-input-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="form-row full-row regression-actions">
+            <button type="button" class="secondary-btn regression-add-row" data-target="density-input-body" data-i18n="btn_add_point">Ajouter un point</button>
+            <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+          </div>
+        </form>
+        <div class="table-wrapper">
+          <table id="density-table" class="regression-output-table">
+            <thead>
+              <tr>
+                <th data-i18n="table_temp">Température (°C)</th>
+                <th data-i18n="density_label">Density (kg/m³)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <canvas id="density-chart" width="600" height="300"></canvas>
+        <div id="density-equation" class="equation-note"></div>
+      </section>
+
+      <section id="subtab-cp" class="sub-tab-content">
+        <h3 data-i18n="cp_heading">Cp (kJ/kgK)</h3>
+        <form id="cpForm" class="form-grid">
+          <div class="form-row full-row">
+            <div class="table-wrapper">
+              <table class="regression-input-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="table_temp">Température (°C)</th>
+                    <th data-i18n="cp_label">Cp (kJ/kgK)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="cp-input-body" class="regression-input-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="form-row full-row regression-actions">
+            <button type="button" class="secondary-btn regression-add-row" data-target="cp-input-body" data-i18n="btn_add_point">Ajouter un point</button>
+            <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+          </div>
+        </form>
+        <div class="table-wrapper">
+          <table id="cp-table" class="regression-output-table">
+            <thead>
+              <tr>
+                <th data-i18n="table_temp">Température (°C)</th>
+                <th data-i18n="cp_label">Cp (kJ/kgK)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <canvas id="cp-chart" width="600" height="300"></canvas>
+        <div id="cp-equation" class="equation-note"></div>
+      </section>
+
+      <section id="subtab-thermal" class="sub-tab-content">
+        <h3 data-i18n="thermal_heading">Thermal conductivity (W/mK)</h3>
+        <form id="thermalForm" class="form-grid">
+          <div class="form-row full-row">
+            <div class="table-wrapper">
+              <table class="regression-input-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="table_temp">Température (°C)</th>
+                    <th data-i18n="thermal_label">Thermal conductivity (W/mK)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="thermal-input-body" class="regression-input-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="form-row full-row regression-actions">
+            <button type="button" class="secondary-btn regression-add-row" data-target="thermal-input-body" data-i18n="btn_add_point">Ajouter un point</button>
+            <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
+          </div>
+        </form>
+        <div class="table-wrapper">
+          <table id="thermal-table" class="regression-output-table">
+            <thead>
+              <tr>
+                <th data-i18n="table_temp">Température (°C)</th>
+                <th data-i18n="thermal_label">Thermal conductivity (W/mK)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <canvas id="thermal-chart" width="600" height="300"></canvas>
+        <div id="thermal-equation" class="equation-note"></div>
+      </section>
     </section>
 
     <!-- Tab: Mixture -->
