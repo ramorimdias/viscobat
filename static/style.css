@@ -112,6 +112,38 @@ body.modal-open {
   display: block;
 }
 
+/* Sub tabs inside temperature extrapolation */
+.sub-tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0 1rem;
+}
+
+.sub-tab-button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e0e0e0;
+  background: #f9f9f9;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #444;
+}
+
+.sub-tab-button.active {
+  background: #c62828;
+  color: #fff;
+  border-color: #c62828;
+}
+
+.sub-tab-content {
+  display: none;
+}
+
+.sub-tab-content.active {
+  display: block;
+}
+
 /* Forms */
 .form-grid {
   display: grid;
@@ -225,6 +257,29 @@ th {
 
 .table-wrapper {
   overflow-x: auto;
+}
+
+.regression-input-table th:last-child,
+.regression-input-table td:last-child {
+  width: 60px;
+  text-align: center;
+}
+
+.regression-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.icon-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background-color: #f0f0f0;
 }
 
 .modal {
