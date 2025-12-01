@@ -710,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!data || data.length === 0) return;
     let xMin = data[0].x;
     let xMax = data[0].x;
-    let yMin = 0;
+    let yMin = data[0].y;
     let yMax = data[0].y;
     data.forEach(pt => {
       if (pt.x < xMin) xMin = pt.x;
