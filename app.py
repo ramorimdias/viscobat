@@ -219,22 +219,42 @@ def serve_index():
 @app.route('/api/viscosity_temperature', methods=['POST'])
 def api_viscosity_temperature():
     data = request.get_json(force=True)
-    try:
-        v1 = float(data.get('v1', 0))
-        t1 = float(data.get('t1', 0))
-        v2 = float(data.get('v2', 0))
-        t2 = float(data.get('t2', 0))
-    except (TypeError, ValueError):
-        return jsonify({'error': 'Invalid input'}), 400
-    # compute Walther parameters
-    slope, intercept = walther_params(v1, t1, v2, t2)
-    # compute table from -20 to 100 °C inclusive every 10 °C
+    points = data.get('points', [])
+
+    walther_x = []
+    walther_y = []
+    if isinstance(points, list) and len(points) >= 2:
+        for pt in points:
+            try:
+                visc = float(pt.get('viscosity'))
+                temp = float(pt.get('temperature'))
+            except (TypeError, ValueError):
+                continue
+            if visc <= 0 or temp <= -273.15:
+                continue
+            walther_x.append(math.log10(math.log10(visc + 0.7)))
+            walther_y.append(math.log10(temp + 273.15))
+
+    if len(walther_x) >= 2:
+        slope_raw, intercept = np.polyfit(walther_y, walther_x, 1)
+        slope = -float(slope_raw)
+        intercept = float(intercept)
+    else:
+        try:
+            v1 = float(data.get('v1', 0))
+            t1 = float(data.get('t1', 0))
+            v2 = float(data.get('v2', 0))
+            t2 = float(data.get('t2', 0))
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid input'}), 400
+        slope, intercept = walther_params(v1, t1, v2, t2)
+
     temps = list(range(-20, 101, 10))
     table = []
     for T in temps:
         visc = walther_viscosity_at_temp(slope, intercept, T)
         table.append({'temperature': T, 'viscosity': visc})
-    # compute optional target viscosity
+
     result = {
         'slope': slope,
         'intercept': intercept,
@@ -244,7 +264,14 @@ def api_viscosity_temperature():
         try:
             target_temp = float(data['target'])
             visc_target = walther_viscosity_at_temp(slope, intercept, target_temp)
+            target_row = {
+                'temperature': target_temp,
+                'viscosity': visc_target,
+                'isTarget': True
+            }
+            table.append(target_row)
             result['targetViscosity'] = visc_target
+            result['targetTemperature'] = target_temp
         except (TypeError, ValueError):
             pass
     return jsonify(result)
@@ -281,12 +308,24 @@ def api_property_regression():
         ref_density = float(intercept + slope * mean_temp)
         if ref_density != 0:
             beta = float(-slope / ref_density)
+
+    target_value = None
+    target_temp = data.get('target')
+    if target_temp is not None:
+        try:
+            target_temp = float(target_temp)
+            target_value = float(intercept + slope * target_temp)
+            table.append({'temperature': target_temp, 'value': target_value, 'isTarget': True})
+        except (TypeError, ValueError):
+            target_temp = None
     return jsonify({
         'slope': float(slope),
         'intercept': float(intercept),
         'equation': equation,
         'table': table,
-        'beta': beta
+        'beta': beta,
+        'targetValue': target_value,
+        'targetTemperature': target_temp
     })
 
 

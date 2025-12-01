@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     label_t1: { FR: 'Température 1 (°C)', EN: 'Temperature 1 (°C)' },
     label_t2: { FR: 'Température 2 (°C)', EN: 'Temperature 2 (°C)' },
     label_target_temp: { FR: 'Température voulue (°C)', EN: 'Target temperature (°C)' },
+    target_result_label: { FR: 'Valeur à la température cible :', EN: 'Value at target temperature:' },
     btn_calculate: { FR: 'Calculer', EN: 'Calculate' },
     btn_solve: { FR: 'Résoudre', EN: 'Solve' },
     btn_add_component: { FR: 'Ajouter un constituant', EN: 'Add component' },
@@ -259,7 +260,11 @@ document.addEventListener('DOMContentLoaded', () => {
     translatePage();
     redrawActiveSubtab();
     renderWaltherEquation();
-    ['density', 'cp', 'thermal'].forEach(renderRegressionEquation);
+    renderWaltherTargetSummary(waltherTargetInfo?.temperature, waltherTargetInfo?.viscosity);
+    ['density', 'cp', 'thermal'].forEach(key => {
+      renderRegressionEquation(key);
+      renderRegressionTarget(key);
+    });
   });
 
   translatePage();
@@ -341,6 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const tempForm = document.getElementById('tempForm');
   const tempTableBody = document.querySelector('#temp-table tbody');
   const tempResult = document.getElementById('temp-target-result');
+  const waltherInputBody = document.getElementById('temp-input-body');
+  const waltherTargetSummary = document.getElementById('temp-target-summary');
   const tempCanvas = document.getElementById('temp-chart');
   const waltherEquation = document.getElementById('walther-equation');
   const subTabButtons = document.querySelectorAll('.sub-tab-button');
@@ -348,15 +355,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const regressionChartData = { density: [], cp: [], thermal: [] };
   const regressionExperimentalPoints = { density: [], cp: [], thermal: [] };
   const regressionFits = { density: null, cp: null, thermal: null };
+  const regressionTargets = { density: null, cp: null, thermal: null };
   let currentChartData = [];
   let waltherParams = null;
   let waltherExperimentalPoints = [];
+  let waltherTargetInfo = null;
 
   const regressionConfigs = {
     density: {
       form: document.getElementById('densityForm'),
       inputBody: document.getElementById('density-input-body'),
       outputBody: document.querySelector('#density-table tbody'),
+      targetInput: document.getElementById('density-target'),
+      targetResultEl: document.getElementById('density-target-result'),
       canvas: document.getElementById('density-chart'),
       equationEl: document.getElementById('density-equation'),
       betaEl: document.getElementById('density-beta'),
@@ -367,6 +378,8 @@ document.addEventListener('DOMContentLoaded', () => {
       form: document.getElementById('cpForm'),
       inputBody: document.getElementById('cp-input-body'),
       outputBody: document.querySelector('#cp-table tbody'),
+      targetInput: document.getElementById('cp-target'),
+      targetResultEl: document.getElementById('cp-target-result'),
       canvas: document.getElementById('cp-chart'),
       equationEl: document.getElementById('cp-equation'),
       labelKey: 'cp_label',
@@ -376,6 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
       form: document.getElementById('thermalForm'),
       inputBody: document.getElementById('thermal-input-body'),
       outputBody: document.querySelector('#thermal-table tbody'),
+      targetInput: document.getElementById('thermal-target'),
+      targetResultEl: document.getElementById('thermal-target-result'),
       canvas: document.getElementById('thermal-chart'),
       equationEl: document.getElementById('thermal-equation'),
       labelKey: 'thermal_label',
@@ -429,6 +444,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setStoredJson(`vb_reg_${key}_inputs`, points);
   }
 
+  function persistWaltherInputs() {
+    const points = [];
+    waltherInputBody.querySelectorAll('.walther-input-row').forEach(row => {
+      const tVal = parseFloat(row.querySelector('.walther-temp-input').value);
+      const vVal = parseFloat(row.querySelector('.walther-visc-input').value);
+      if (!isNaN(tVal) && !isNaN(vVal)) {
+        points.push({ temperature: tVal, viscosity: vVal });
+      }
+    });
+    setStoredJson('vb_walther_inputs', points);
+  }
+
   function addRegressionRow(tbody, key, values = {}) {
     if (!tbody) return;
     const tr = document.createElement('tr');
@@ -469,11 +496,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function persistRegressionResults(key, table, experimental = []) {
+  function addWaltherRow(values = {}) {
+    if (!waltherInputBody) return;
+    const tr = document.createElement('tr');
+    tr.classList.add('walther-input-row');
+    const tdTemp = document.createElement('td');
+    const tempInput = document.createElement('input');
+    tempInput.type = 'number';
+    tempInput.step = 'any';
+    tempInput.className = 'walther-temp-input';
+    tempInput.value = values.temperature !== undefined ? values.temperature : '';
+    tdTemp.appendChild(tempInput);
+
+    const tdVal = document.createElement('td');
+    const valInput = document.createElement('input');
+    valInput.type = 'number';
+    valInput.step = 'any';
+    valInput.className = 'walther-visc-input';
+    valInput.value = values.viscosity !== undefined ? values.viscosity : '';
+    tdVal.appendChild(valInput);
+
+    const tdRemove = document.createElement('td');
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '✕';
+    removeBtn.className = 'ghost-btn';
+    removeBtn.addEventListener('click', () => {
+      tr.remove();
+      persistWaltherInputs();
+    });
+    tdRemove.appendChild(removeBtn);
+
+    tr.appendChild(tdTemp);
+    tr.appendChild(tdVal);
+    tr.appendChild(tdRemove);
+    waltherInputBody.appendChild(tr);
+
+    ['input', 'change'].forEach(evt => {
+      tempInput.addEventListener(evt, persistWaltherInputs);
+      valInput.addEventListener(evt, persistWaltherInputs);
+    });
+  }
+
+  function persistRegressionResults(key, table, experimental = [], target = null) {
     setStoredJson(`vb_reg_${key}_results`, {
       table,
       fit: regressionFits[key],
-      experimental
+      experimental,
+      target
     });
   }
 
@@ -490,6 +560,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function restoreWaltherInputs() {
+    const saved = getStoredJson('vb_walther_inputs', []);
+    waltherInputBody.innerHTML = '';
+    if (saved.length > 0) {
+      saved.forEach(entry => addWaltherRow(entry));
+    } else {
+      addWaltherRow({ temperature: 40, viscosity: '' });
+      addWaltherRow({ temperature: 100, viscosity: '' });
+    }
+  }
+
   function restoreRegressionResults(key) {
     const cfg = regressionConfigs[key];
     if (!cfg || !cfg.outputBody) return;
@@ -497,9 +578,11 @@ document.addEventListener('DOMContentLoaded', () => {
     cfg.outputBody.innerHTML = '';
     regressionChartData[key] = [];
     regressionFits[key] = null;
+    regressionTargets[key] = null;
     if (saved && Array.isArray(saved.table)) {
       saved.table.forEach(row => {
         const tr = document.createElement('tr');
+        if (row.isTarget) tr.classList.add('target-row');
         const tdT = document.createElement('td');
         tdT.textContent = row.temperature;
         const tdV = document.createElement('td');
@@ -508,12 +591,19 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.appendChild(tdV);
         cfg.outputBody.appendChild(tr);
         regressionChartData[key].push({ x: row.temperature, y: row.value });
+        if (row.isTarget) {
+          regressionTargets[key] = { temperature: row.temperature, value: row.value };
+        }
       });
       regressionFits[key] = saved.fit || null;
       regressionExperimentalPoints[key] = Array.isArray(saved.experimental)
         ? saved.experimental.map(pt => ({ x: pt.x, y: pt.y }))
         : [];
+      if (saved.target) {
+        regressionTargets[key] = saved.target;
+      }
     }
+    renderRegressionTarget(key);
     renderRegressionEquation(key);
   }
 
@@ -521,6 +611,8 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreRegressionInputs(key);
     restoreRegressionResults(key);
   });
+
+  restoreWaltherInputs();
 
   document.querySelectorAll('.regression-add-row').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -533,11 +625,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  document.querySelectorAll('.walther-add-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      addWaltherRow();
+      persistWaltherInputs();
+    });
+  });
+
   function persistWaltherState(data, targetTemp, experimental = []) {
     setStoredJson('vb_walther_state', {
       params: { slope: data.slope, intercept: data.intercept },
       table: data.table,
       targetViscosity: data.targetViscosity,
+      targetTemperature: data.targetTemperature,
       targetTemp,
       experimental
     });
@@ -549,12 +649,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tempTableBody.innerHTML = '';
     currentChartData = [];
     waltherParams = saved.params;
+    waltherTargetInfo = null;
     waltherExperimentalPoints = Array.isArray(saved.experimental)
       ? saved.experimental.map(pt => ({ x: pt.x, y: pt.y }))
       : [];
     if (Array.isArray(saved.table)) {
       saved.table.forEach(row => {
         const tr = document.createElement('tr');
+        if (row.isTarget) tr.classList.add('target-row');
         const tdT = document.createElement('td');
         tdT.textContent = row.temperature;
         const tdV = document.createElement('td');
@@ -563,10 +665,16 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.appendChild(tdV);
         tempTableBody.appendChild(tr);
         currentChartData.push({ x: row.temperature, y: row.viscosity });
+        if (row.isTarget) {
+          waltherTargetInfo = { temperature: row.temperature, viscosity: row.viscosity };
+        }
       });
     }
-    if (saved.targetViscosity !== undefined) {
-      tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${Number(saved.targetViscosity).toFixed(2)} mm²/s`;
+    if (waltherTargetInfo) {
+      renderWaltherTargetSummary(waltherTargetInfo.temperature, waltherTargetInfo.viscosity);
+    }
+    if (saved.targetViscosity !== undefined && saved.targetTemperature !== undefined) {
+      tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${Number(saved.targetViscosity).toFixed(2)} mm²/s @ ${saved.targetTemperature}°C`;
     }
     renderWaltherEquation();
     redrawActiveSubtab();
@@ -574,34 +682,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tempForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const v1 = parseFloat(document.getElementById('temp-v1').value);
-    const t1 = parseFloat(document.getElementById('temp-t1').value);
-    const v2 = parseFloat(document.getElementById('temp-v2').value);
-    const t2 = parseFloat(document.getElementById('temp-t2').value);
     const target = parseFloat(document.getElementById('temp-target').value);
-    const experimentalPoints = [
-      { x: t1, y: v1 },
-      { x: t2, y: v2 }
-    ].filter(pt => !Number.isNaN(pt.x) && !Number.isNaN(pt.y));
-    waltherExperimentalPoints = experimentalPoints;
+    const waltherPoints = [];
+    waltherInputBody.querySelectorAll('.walther-input-row').forEach(row => {
+      const tVal = parseFloat(row.querySelector('.walther-temp-input').value);
+      const vVal = parseFloat(row.querySelector('.walther-visc-input').value);
+      if (!Number.isNaN(tVal) && !Number.isNaN(vVal)) {
+        waltherPoints.push({ temperature: tVal, viscosity: vVal });
+      }
+    });
+    if (waltherPoints.length < 2) {
+      tempResult.textContent = currentLang === 'FR' ? 'Ajoutez au moins deux points valides.' : 'Add at least two valid points.';
+      return;
+    }
+    waltherExperimentalPoints = waltherPoints.map(pt => ({ x: pt.temperature, y: pt.viscosity }));
+    const payload = { points: waltherPoints };
+    if (!Number.isNaN(target)) {
+      payload.target = target;
+    }
     fetch('/api/viscosity_temperature', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ v1, t1, v2, t2, target })
+      body: JSON.stringify(payload)
     })
       .then(resp => resp.json().then(data => ({ status: resp.status, body: data })))
       .then(({ status, body }) => {
         if (status !== 200) {
           tempResult.textContent = body.error || 'Erreur';
         } else {
-          if (body.targetViscosity !== undefined) {
-            tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${body.targetViscosity.toFixed(2)} mm²/s`;
-          }
+          waltherTargetInfo = null;
           tempTableBody.innerHTML = '';
           currentChartData = [];
           waltherParams = { slope: body.slope, intercept: body.intercept };
           body.table.forEach(row => {
             const tr = document.createElement('tr');
+            if (row.isTarget) tr.classList.add('target-row');
             const tdT = document.createElement('td');
             tdT.textContent = row.temperature;
             const tdV = document.createElement('td');
@@ -610,7 +725,17 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.appendChild(tdV);
             tempTableBody.appendChild(tr);
             currentChartData.push({ x: row.temperature, y: row.viscosity });
+            if (row.isTarget) {
+              waltherTargetInfo = { temperature: row.temperature, viscosity: row.viscosity };
+            }
           });
+          if (body.targetViscosity !== undefined && body.targetTemperature !== undefined) {
+            tempResult.innerHTML = `<strong>${translations['temp_result_at'] ? translations['temp_result_at'][currentLang] : 'Kinematic viscosity at target:'}</strong> ${body.targetViscosity.toFixed(2)} mm²/s @ ${body.targetTemperature}°C`;
+            renderWaltherTargetSummary(body.targetTemperature, body.targetViscosity);
+          } else {
+            renderWaltherTargetSummary(waltherTargetInfo?.temperature, waltherTargetInfo?.viscosity);
+            tempResult.textContent = '';
+          }
           persistWaltherState(body, target, waltherExperimentalPoints);
           renderWaltherEquation();
           redrawActiveSubtab();
@@ -624,6 +749,16 @@ document.addEventListener('DOMContentLoaded', () => {
   translations['temp_result_at'] = { FR: 'Viscosité cinématique à la température voulue :', EN: 'Kinematic viscosity at target temperature:' };
 
   restoreWaltherState();
+
+  function renderWaltherTargetSummary(temp, viscosity) {
+    if (!waltherTargetSummary) return;
+    if (temp === undefined || viscosity === undefined) {
+      waltherTargetSummary.textContent = '';
+      return;
+    }
+    const label = translations['target_result_label'][currentLang] || 'Value at target temperature:';
+    waltherTargetSummary.textContent = `${label} ${temp}°C → ${Number(viscosity).toFixed(2)} mm²/s`;
+  }
 
   function renderWaltherEquation(params = waltherParams) {
     if (!waltherEquation) return;
@@ -655,10 +790,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       regressionExperimentalPoints[key] = points.map(pt => ({ x: pt.temperature, y: pt.value }));
+      const targetTemp = cfg.targetInput ? parseFloat(cfg.targetInput.value) : NaN;
+      const payload = { property: key, points };
+      if (!Number.isNaN(targetTemp)) {
+        payload.target = targetTemp;
+      }
       fetch('/api/property_regression', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ property: key, points })
+        body: JSON.stringify(payload)
       })
         .then(resp => resp.json().then(data => ({ status: resp.status, body: data })))
         .then(({ status, body }) => {
@@ -670,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
           regressionChartData[key] = [];
           body.table.forEach(row => {
             const tr = document.createElement('tr');
+            if (row.isTarget) tr.classList.add('target-row');
             const tdT = document.createElement('td');
             tdT.textContent = row.temperature;
             const tdV = document.createElement('td');
@@ -680,7 +821,11 @@ document.addEventListener('DOMContentLoaded', () => {
             regressionChartData[key].push({ x: row.temperature, y: row.value });
           });
           regressionFits[key] = { slope: body.slope, intercept: body.intercept, beta: body.beta };
-          persistRegressionResults(key, body.table, regressionExperimentalPoints[key]);
+          regressionTargets[key] = body.targetTemperature !== null && body.targetValue !== null
+            ? { temperature: body.targetTemperature, value: body.targetValue }
+            : null;
+          renderRegressionTarget(key);
+          persistRegressionResults(key, body.table, regressionExperimentalPoints[key], regressionTargets[key]);
           renderRegressionEquation(key);
           redrawActiveSubtab();
         })
@@ -689,6 +834,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
   });
+
+  function renderRegressionTarget(key) {
+    const cfg = regressionConfigs[key];
+    if (!cfg || !cfg.targetResultEl) return;
+    const target = regressionTargets[key];
+    if (!target || target.temperature === undefined || target.value === undefined) {
+      cfg.targetResultEl.textContent = '';
+      return;
+    }
+    const label = translations['target_result_label'][currentLang] || 'Value at target temperature:';
+    const units = translations[cfg.labelKey]?.[currentLang] || '';
+    cfg.targetResultEl.textContent = `${label} ${target.temperature}°C → ${Number(target.value).toFixed(4)} ${units}`;
+  }
 
   function renderRegressionEquation(key) {
     const cfg = regressionConfigs[key];
