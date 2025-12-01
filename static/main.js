@@ -590,7 +590,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.appendChild(tdT);
         tr.appendChild(tdV);
         cfg.outputBody.appendChild(tr);
-        regressionChartData[key].push({ x: row.temperature, y: row.value });
+        if (!row.isTarget) {
+          regressionChartData[key].push({ x: row.temperature, y: row.value });
+        }
         if (row.isTarget) {
           regressionTargets[key] = { temperature: row.temperature, value: row.value };
         }
@@ -664,7 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.appendChild(tdT);
         tr.appendChild(tdV);
         tempTableBody.appendChild(tr);
-        currentChartData.push({ x: row.temperature, y: row.viscosity });
+        if (!row.isTarget) {
+          currentChartData.push({ x: row.temperature, y: row.viscosity });
+        }
         if (row.isTarget) {
           waltherTargetInfo = { temperature: row.temperature, viscosity: row.viscosity };
         }
@@ -724,7 +728,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.appendChild(tdT);
             tr.appendChild(tdV);
             tempTableBody.appendChild(tr);
-            currentChartData.push({ x: row.temperature, y: row.viscosity });
+            if (!row.isTarget) {
+              currentChartData.push({ x: row.temperature, y: row.viscosity });
+            }
             if (row.isTarget) {
               waltherTargetInfo = { temperature: row.temperature, viscosity: row.viscosity };
             }
@@ -818,7 +824,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.appendChild(tdT);
             tr.appendChild(tdV);
             cfg.outputBody.appendChild(tr);
-            regressionChartData[key].push({ x: row.temperature, y: row.value });
+            if (!row.isTarget) {
+              regressionChartData[key].push({ x: row.temperature, y: row.value });
+            }
           });
           regressionFits[key] = { slope: body.slope, intercept: body.intercept, beta: body.beta };
           regressionTargets[key] = body.targetTemperature !== null && body.targetValue !== null
