@@ -107,32 +107,32 @@
       <section id="subtab-kv" class="sub-tab-content active">
         <h3 data-i18n="kv_heading">KV (cSt)</h3>
         <form id="tempForm" class="form-grid">
-          <div class="form-row">
-            <label for="temp-v1" data-i18n="label_v1">Viscosité cinématique 1 (mm²/s)</label>
-            <input type="number" step="any" id="temp-v1" required>
-          </div>
-          <div class="form-row">
-            <label for="temp-t1" data-i18n="label_t1">Température 1 (°C)</label>
-            <input type="number" step="any" id="temp-t1" value="40" required>
-          </div>
-          <div class="form-row">
-            <label for="temp-v2" data-i18n="label_v2">Viscosité cinématique 2 (mm²/s)</label>
-            <input type="number" step="any" id="temp-v2" required>
-          </div>
-          <div class="form-row">
-            <label for="temp-t2" data-i18n="label_t2">Température 2 (°C)</label>
-            <input type="number" step="any" id="temp-t2" value="100" required>
+          <div class="form-row full-row">
+            <div class="table-wrapper">
+              <table class="regression-input-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="table_temp">Température (°C)</th>
+                    <th data-i18n="table_visc">Viscosité cinématique (mm²/s)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="temp-input-body" class="regression-input-body"></tbody>
+              </table>
+            </div>
           </div>
           <div class="form-row">
             <label for="temp-target" data-i18n="label_target_temp">Température voulue (°C)</label>
             <input type="number" step="any" id="temp-target" value="20" required>
           </div>
-          <div class="form-row full-row">
+          <div class="form-row full-row regression-actions">
+            <button type="button" class="secondary-btn walther-add-row" data-target="temp-input-body" data-i18n="btn_add_point">Ajouter un point</button>
             <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
           </div>
         </form>
         <div id="temp-target-result" class="result"></div>
         <div class="table-wrapper">
+          <div id="temp-target-summary" class="target-summary"></div>
           <table id="temp-table">
             <thead>
               <tr>
@@ -164,12 +164,17 @@
               </table>
             </div>
           </div>
+          <div class="form-row">
+            <label for="density-target" data-i18n="label_target_temp">Température voulue (°C)</label>
+            <input type="number" step="any" id="density-target" value="20">
+          </div>
           <div class="form-row full-row regression-actions">
             <button type="button" class="secondary-btn regression-add-row" data-target="density-input-body" data-i18n="btn_add_point">Ajouter un point</button>
             <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
           </div>
         </form>
         <div class="table-wrapper">
+          <div id="density-target-result" class="target-summary"></div>
           <table id="density-table" class="regression-output-table">
             <thead>
               <tr>
@@ -202,12 +207,17 @@
               </table>
             </div>
           </div>
+          <div class="form-row">
+            <label for="cp-target" data-i18n="label_target_temp">Température voulue (°C)</label>
+            <input type="number" step="any" id="cp-target" value="20">
+          </div>
           <div class="form-row full-row regression-actions">
             <button type="button" class="secondary-btn regression-add-row" data-target="cp-input-body" data-i18n="btn_add_point">Ajouter un point</button>
             <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
           </div>
         </form>
         <div class="table-wrapper">
+          <div id="cp-target-result" class="target-summary"></div>
           <table id="cp-table" class="regression-output-table">
             <thead>
               <tr>
@@ -239,12 +249,17 @@
               </table>
             </div>
           </div>
+          <div class="form-row">
+            <label for="thermal-target" data-i18n="label_target_temp">Température voulue (°C)</label>
+            <input type="number" step="any" id="thermal-target" value="20">
+          </div>
           <div class="form-row full-row regression-actions">
             <button type="button" class="secondary-btn regression-add-row" data-target="thermal-input-body" data-i18n="btn_add_point">Ajouter un point</button>
             <button type="submit" class="primary-btn" data-i18n="btn_calculate">Calculer</button>
           </div>
         </form>
         <div class="table-wrapper">
+          <div id="thermal-target-result" class="target-summary"></div>
           <table id="thermal-table" class="regression-output-table">
             <thead>
               <tr>

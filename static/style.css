@@ -197,6 +197,16 @@ th {
   background-color: #f0f0f0;
 }
 
+.target-row {
+  background-color: #fff7e6;
+  font-weight: 600;
+}
+
+.target-summary {
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
 .solver-name-input {
   width: 100%;
   box-sizing: border-box;
