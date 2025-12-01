@@ -346,9 +346,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const subTabButtons = document.querySelectorAll('.sub-tab-button');
   const subTabSections = document.querySelectorAll('.sub-tab-content');
   const regressionChartData = { density: [], cp: [], thermal: [] };
+  const regressionExperimentalPoints = { density: [], cp: [], thermal: [] };
   const regressionFits = { density: null, cp: null, thermal: null };
   let currentChartData = [];
   let waltherParams = null;
+  let waltherExperimentalPoints = [];
 
   const regressionConfigs = {
     density: {
@@ -400,13 +402,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (key === 'kv') {
       drawLineChart(tempCanvas, currentChartData, {
         xLabel: translations['axis_temp'][currentLang] || 'Temperature (°C)',
-        yLabel: translations['axis_visc'][currentLang] || 'Kinematic Viscosity (mm²/s)'
+        yLabel: translations['axis_visc'][currentLang] || 'Kinematic Viscosity (mm²/s)',
+        experimentalPoints: waltherExperimentalPoints
       });
     } else if (regressionChartData[key]) {
       const cfg = regressionConfigs[key];
       drawLineChart(cfg.canvas, regressionChartData[key], {
         xLabel: translations['axis_temp'][currentLang] || 'Temperature (°C)',
-        yLabel: translations[cfg.labelKey][currentLang] || ''
+        yLabel: translations[cfg.labelKey][currentLang] || '',
+        experimentalPoints: regressionExperimentalPoints[key]
       });
     }
   }
@@ -465,10 +469,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function persistRegressionResults(key, table) {
+  function persistRegressionResults(key, table, experimental = []) {
     setStoredJson(`vb_reg_${key}_results`, {
       table,
-      fit: regressionFits[key]
+      fit: regressionFits[key],
+      experimental
     });
   }
 
@@ -505,6 +510,9 @@ document.addEventListener('DOMContentLoaded', () => {
         regressionChartData[key].push({ x: row.temperature, y: row.value });
       });
       regressionFits[key] = saved.fit || null;
+      regressionExperimentalPoints[key] = Array.isArray(saved.experimental)
+        ? saved.experimental.map(pt => ({ x: pt.x, y: pt.y }))
+        : [];
     }
     renderRegressionEquation(key);
   }
@@ -525,12 +533,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  function persistWaltherState(data, targetTemp) {
+  function persistWaltherState(data, targetTemp, experimental = []) {
     setStoredJson('vb_walther_state', {
       params: { slope: data.slope, intercept: data.intercept },
       table: data.table,
       targetViscosity: data.targetViscosity,
-      targetTemp
+      targetTemp,
+      experimental
     });
   }
 
@@ -540,6 +549,9 @@ document.addEventListener('DOMContentLoaded', () => {
     tempTableBody.innerHTML = '';
     currentChartData = [];
     waltherParams = saved.params;
+    waltherExperimentalPoints = Array.isArray(saved.experimental)
+      ? saved.experimental.map(pt => ({ x: pt.x, y: pt.y }))
+      : [];
     if (Array.isArray(saved.table)) {
       saved.table.forEach(row => {
         const tr = document.createElement('tr');
@@ -567,6 +579,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const v2 = parseFloat(document.getElementById('temp-v2').value);
     const t2 = parseFloat(document.getElementById('temp-t2').value);
     const target = parseFloat(document.getElementById('temp-target').value);
+    const experimentalPoints = [
+      { x: t1, y: v1 },
+      { x: t2, y: v2 }
+    ].filter(pt => !Number.isNaN(pt.x) && !Number.isNaN(pt.y));
+    waltherExperimentalPoints = experimentalPoints;
     fetch('/api/viscosity_temperature', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -594,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tempTableBody.appendChild(tr);
             currentChartData.push({ x: row.temperature, y: row.viscosity });
           });
-          persistWaltherState(body, target);
+          persistWaltherState(body, target, waltherExperimentalPoints);
           renderWaltherEquation();
           redrawActiveSubtab();
         }
@@ -637,6 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cfg.equationEl.textContent = `${translations['linear_equation_label'][currentLang]} ${currentLang === 'FR' ? 'Ajoutez au moins deux points.' : 'Add at least two points.'}`;
         return;
       }
+      regressionExperimentalPoints[key] = points.map(pt => ({ x: pt.temperature, y: pt.value }));
       fetch('/api/property_regression', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -662,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regressionChartData[key].push({ x: row.temperature, y: row.value });
           });
           regressionFits[key] = { slope: body.slope, intercept: body.intercept, beta: body.beta };
-          persistRegressionResults(key, body.table);
+          persistRegressionResults(key, body.table, regressionExperimentalPoints[key]);
           renderRegressionEquation(key);
           redrawActiveSubtab();
         })
@@ -698,7 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /**
    * Draw a simple line chart on a canvas using the provided data.
    */
-  function drawLineChart(canvas, data, { xLabel = 'Temperature (°C)', yLabel = 'Value' } = {}) {
+  function drawLineChart(canvas, data, { xLabel = 'Temperature (°C)', yLabel = 'Value', experimentalPoints = [] } = {}) {
     if (!canvas) return;
     const canvasStyle = window.getComputedStyle(canvas);
     const isHidden = canvasStyle.display === 'none' || !document.getElementById('tab-temp').classList.contains('active');
@@ -707,12 +725,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const width = canvas.width;
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
-    if (!data || data.length === 0) return;
-    let xMin = data[0].x;
-    let xMax = data[0].x;
-    let yMin = data[0].y;
-    let yMax = data[0].y;
-    data.forEach(pt => {
+    const safeData = Array.isArray(data) ? data : [];
+    const combinedPoints = [...safeData, ...(experimentalPoints || [])].filter(pt =>
+      pt && Number.isFinite(pt.x) && Number.isFinite(pt.y)
+    );
+    if (combinedPoints.length === 0) return;
+    let xMin = combinedPoints[0].x;
+    let xMax = combinedPoints[0].x;
+    let yMin = combinedPoints[0].y;
+    let yMax = combinedPoints[0].y;
+    combinedPoints.forEach(pt => {
       if (pt.x < xMin) xMin = pt.x;
       if (pt.x > xMax) xMax = pt.x;
       if (pt.y < yMin) yMin = pt.y;
@@ -753,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.stroke();
     ctx.font = '12px Arial';
     ctx.fillStyle = '#444';
-    data.forEach(pt => {
+    combinedPoints.forEach(pt => {
       const xC = xToCanvas(pt.x);
       ctx.beginPath();
       ctx.moveTo(xC, marginTop + plotHeight);
@@ -789,7 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.strokeStyle = '#c62828';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    data.forEach((pt, idx) => {
+    safeData.forEach((pt, idx) => {
       const xC = xToCanvas(pt.x);
       const yC = yToCanvas(pt.y);
       if (idx === 0) {
@@ -799,6 +821,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     ctx.stroke();
+
+    if (experimentalPoints && experimentalPoints.length > 0) {
+      ctx.strokeStyle = '#c62828';
+      ctx.lineWidth = 2;
+      experimentalPoints.forEach(pt => {
+        const xC = xToCanvas(pt.x);
+        const yC = yToCanvas(pt.y);
+        const size = 6;
+        ctx.beginPath();
+        ctx.moveTo(xC - size, yC - size);
+        ctx.lineTo(xC + size, yC + size);
+        ctx.moveTo(xC - size, yC + size);
+        ctx.lineTo(xC + size, yC - size);
+        ctx.stroke();
+      });
+    }
   }
 
   /**
