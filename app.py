@@ -25,10 +25,6 @@ Endpoints:
                  Walther correlation parameters (slope and intercept), a
                  viscosity at a desired temperature, and a table of
                  viscosity values between ‑20 °C and 100 °C.
-  /api/property_regression (POST)
-                 Performs a linear regression of any property against
-                 temperature using supplied data points, then returns the
-                 interpolated table from 0 °C to 100 °C.
   /api/vi (POST)
                  Computes the kinematic viscosity index (VI) using the
                  ASTM D2270 method.  The service first determines the
@@ -248,37 +244,6 @@ def api_viscosity_temperature():
         except (TypeError, ValueError):
             pass
     return jsonify(result)
-
-
-@app.route('/api/property_regression', methods=['POST'])
-def api_property_regression():
-    data = request.get_json(force=True)
-    points = data.get('points', [])
-    temps = []
-    values = []
-    try:
-        for pt in points:
-            temps.append(float(pt.get('temperature')))
-            values.append(float(pt.get('value')))
-    except (TypeError, ValueError):
-        return jsonify({'error': 'Invalid input'}), 400
-
-    if len(temps) < 2:
-        return jsonify({'error': 'At least two points are required'}), 400
-
-    slope, intercept = np.polyfit(temps, values, 1)
-    table = []
-    for t in range(0, 101, 10):
-        val = float(intercept + slope * t)
-        table.append({'temperature': t, 'value': val})
-
-    equation = f"y = {intercept:.4f} + {slope:.4f}·T"
-    return jsonify({
-        'slope': float(slope),
-        'intercept': float(intercept),
-        'equation': equation,
-        'table': table
-    })
 
 
 @app.route('/api/vi', methods=['POST'])
